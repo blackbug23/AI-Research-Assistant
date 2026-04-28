@@ -1,0 +1,10 @@
+{
+  "last_run": null,
+  "last_intent": null,
+  "recent_successes": [],
+  "recent_failures": [],
+  "genes_used": [],
+  "active_validation": false,
+  "validator_enabled": false,
+  "git_head": null
+}

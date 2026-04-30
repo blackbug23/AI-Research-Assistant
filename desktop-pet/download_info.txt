@@ -1,0 +1,104 @@
+# 桌面宠物项目下载清单
+
+## 核心项目文件
+1. **app.js** - Electron主程序（简化版本）
+2. **index.html** - 桌面宠物UI界面
+3. **package.json** - 项目配置文件
+4. **README.md** - 项目说明文档
+5. **assets/icon.png** - 托盘图标
+
+## 辅助文件
+1. **flutter_mobile.md** - Flutter移动端规划
+2. **project_summary.md** - 团队协作成果总结
+3. **demo.py** - 功能演示脚本
+4. **start_app.js** - 启动检查脚本
+5. **start.sh** - Linux启动脚本
+
+## Windows安装指南
+
+### 第一步：下载项目文件
+```
+项目文件打包下载：
+desktop-pet-full.tar.gz - 完整项目包
+desktop-pet.tar.gz - 精简版本
+```
+
+### 第二步：Windows安装
+1. **解压** tar.gz文件到Windows目录
+2. **安装Node.js** https://nodejs.org/
+3. **运行命令**：
+   ```bash
+   npm install
+   npm start
+   ```
+
+### 第三步：依赖安装问题
+如果Electron安装失败：
+```bash
+# 删除并重新安装
+rm -rf node_modules
+npm cache clean --force
+npm install electron@29.4.6 --no-optional
+```
+
+## 项目文件预览
+
+### app.js (Electron主程序)
+```javascript
+const { app, BrowserWindow, Tray, Menu, nativeImage } = require('electron');
+// ... 完整的Electron程序
+```
+
+### index.html (桌面宠物UI)
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>桌面宠物</title>
+    <style>
+        #pet {
+            animation: idle 4s infinite ease-in-out;
+        }
+        /* ... 完整CSS */
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="pet-container">
+            <div id="pet" onclick="handleDoubleClick()">
+                <!-- 宠物动画 -->
+            </div>
+        </div>
+        <!-- 数据库查看器 -->
+    </div>
+</body>
+</html>
+```
+
+## Windows专用文件清单
+如果要直接复制文件到Windows，需要以下文件：
+1. app.js
+2. index.html
+3. package.json
+4. README.md
+5. assets/icon.png
+
+## 打包信息
+- **完整包**: desktop-pet-full.tar.gz (所有文件)
+- **精简包**: desktop-pet.tar.gz (核心文件)
+
+## Windows运行命令
+```bash
+# 1. 解压项目
+tar -xf desktop-pet.tar.gz
+
+# 2. 安装依赖
+npm install
+
+# 3. 启动应用
+npm start
+```
+
+注意：需要安装Node.js环境才能运行。

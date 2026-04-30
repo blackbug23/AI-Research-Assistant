@@ -1,0 +1,23 @@
+{
+  "name": "desktop-pet",
+  "version": "1.0.0",
+  "description": "桌面宠物应用",
+  "main": "app.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-packager . desktop-pet --platform=linux --arch=x64 --out=dist",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "desktop",
+    "pet",
+    "electron",
+    "sqlite"
+  ],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "electron": "^29.0.0"
+  }
+}

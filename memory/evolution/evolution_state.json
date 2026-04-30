@@ -6,5 +6,7 @@
   "genes_used": [],
   "active_validation": false,
   "validator_enabled": false,
-  "git_head": null
+  "git_head": null,
+  "cycleCount": 1,
+  "lastRun": 1777381670992
 }

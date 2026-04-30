@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>桌面宠物</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: transparent;
+            overflow: hidden;
+        }
+        
+        #app {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #pet-container {
+            position: absolute;
+            top: 100px;
+            left: 100px;
+            width: 150px;
+            height: 150px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        
+        #pet {
+            width: 100%;
+            height: 100%;
+            background-color: #f0f0f0;
+            border-radius: 75px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        
+        #pet:hover {
+            transform: scale(1.1);
+        }
+        
+        #pet:active {
+            transform: scale(0.95);
+        }
+        
+        #pet-face {
+            position: absolute;
+            top: 35%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 40px;
+        }
+        
+        .eye {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background-color: #333;
+            border-radius: 50%;
+            animation: blink 3s infinite;
+        }
+        
+        .eye-left {
+            left: 15px;
+            top: 10px;
+        }
+        
+        .eye-right {
+            right: 15px;
+            top: 10px;
+        }
+        
+        .mouth {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 10px;
+            background-color: #333;
+            border-radius: 5px;
+        }
+        
+        #bubble {
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            padding: 10px;
+            background-color: white;
+            border-radius: 20px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            text-align: center;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+        }
+        
+        .bubble-show {
+            opacity: 1 !important;
+        }
+        
+        #database-viewer {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            height: 300px;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            padding: 20px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .viewer-show {
+            opacity: 1 !important;
+        }
+        
+        #db-content {
+            height: 200px;
+            overflow-y: auto;
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f8f8f8;
+            border-radius: 10px;
+        }
+        
+        #close-viewer {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 30px;
+            height: 30px;
+            background-color: #333;
+            color: white;
+            border-radius: 15px;
+            text-align: center;
+            line-height: 30px;
+            cursor: pointer;
+        }
+        
+        @keyframes blink {
+            0%, 90%, 100% {
+                height: 12px;
+            }
+            95% {
+                height: 2px;
+            }
+        }
+        
+        @keyframes idle {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+        
+        #pet {
+            animation: idle 4s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="pet-container">
+            <div id="pet" onclick="handleDoubleClick()">
+                <div id="pet-face">
+                    <div class="eye eye-left"></div>
+                    <div class="eye eye-right"></div>
+                    <div class="mouth"></div>
+                </div>
+            </div>
+            <div id="bubble">嘿！双击腹部查看数据库</div>
+        </div>
+        
+        <div id="database-viewer">
+            <h3>数据库查看器</h3>
+            <button onclick="insertData()">插入示例数据</button>
+            <button onclick="queryData()">查询数据</button>
+            <button onclick="clearData()">清空数据</button>
+            <div id="db-content"></div>
+            <div id="close-viewer" onclick="closeViewer()">×</div>
+        </div>
+    </div>
+    
+    <script>
+        let clickCount = 0;
+        let lastClickTime = 0;
+        let isDragging = false;
+        let startX, startY, petX, petY;
+        
+        const petContainer = document.getElementById('pet-container');
+        const bubble = document.getElementById('bubble');
+        const databaseViewer = document.getElementById('database-viewer');
+        const dbContent = document.getElementById('db-content');
+        
+        // 拖拽功能
+        petContainer.addEventListener('mousedown', (e) => {
+            if (e.target.id === 'pet-container' || e.target.id === 'pet') {
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                petX = petContainer.offsetLeft;
+                petY = petContainer.offsetTop;
+                
+                // 显示气泡
+                bubble.classList.add('bubble-show');
+                
+                // 移除待机动画
+                document.getElementById('pet').style.animation = 'none';
+            }
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+                
+                petContainer.style.left = `${petX + deltaX}px`;
+                petContainer.style.top = `${petY + deltaY}px`;
+            }
+        });
+        
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                
+                // 恢复待机动画
+                document.getElementById('pet').style.animation = 'idle 4s infinite ease-in-out';
+                
+                // 隐藏气泡
+                bubble.classList.remove('bubble-show');
+            }
+        });
+        
+        // 双击检测
+        function handleDoubleClick() {
+            const currentTime = new Date().getTime();
+            if (currentTime - lastClickTime < 300) { // 双击间隔小于300ms
+                clickCount++;
+                if (clickCount === 2) {
+                    openDatabaseViewer();
+                    clickCount = 0;
+                }
+            } else {
+                clickCount = 1;
+            }
+            lastClickTime = currentTime;
+        }
+        
+        // 打开数据库查看器
+        function openDatabaseViewer() {
+            databaseViewer.classList.add('viewer-show');
+        }
+        
+        // 关闭数据库查看器
+        function closeViewer() {
+            databaseViewer.classList.remove('viewer-show');
+        }
+        
+        // 数据库操作函数
+        function insertData() {
+            const result = window.mockDatabase.insertGoodsData();
+            if (result.success) {
+                bubble.classList.add('bubble-show');
+                bubble.innerHTML = '插入成功，添加了'+ result.count + '条数据';
+                setTimeout(() => bubble.classList.remove('bubble-show'), 3000);
+                setTimeout(() => queryData(), 500);
+            } else {
+                bubble.classList.add('bubble-show');
+                bubble.innerHTML = '插入失败: ' + result.message;
+                setTimeout(() => bubble.classList.remove('bubble-show'), 3000);
+            }
+        }
+        
+        function queryData() {
+            const result = window.mockDatabase.queryInventoryData();
+            if (result.success && result.data.length > 0) {
+                dbContent.innerHTML = '<h4>库存数据</h4>';
+                dbContent.innerHTML += '<table style="width: 100%;"><thead><tr><th>ID</th><th>商品名称</th><th>数量</th><th>位置</th><th>更新时间</th></tr></thead><tbody>';
+                result.data.forEach(item => {
+                    dbContent.innerHTML += `<tr>
+                        <td>${item.id}</td>
+                        <td>${item.goods_name}</td>
+                        <td>${item.current_quantity}</td>
+                        <td>${item.location}</td>
+                        <td>${item.last_update}</td>
+                    </tr>`;
+                });
+                dbContent.innerHTML += '</tbody></table>';
+                bubble.classList.add('bubble-show');
+                bubble.innerHTML = '查询成功，共'+ result.data.length + '条数据';
+                setTimeout(() => bubble.classList.remove('bubble-show'), 3000);
+            } else if (result.success && result.data.length === 0) {
+                dbContent.innerHTML = '<p>库存数据为空</p>';
+            } else {
+                dbContent.innerHTML = '<p>查询失败: ' + result.message + '</p>';
+            }
+        }
+        
+        function clearData() {
+            const result = window.mockDatabase.clearDatabase();
+            if (result.success) {
+                dbContent.innerHTML = '<p>数据库已清空</p>';
+                bubble.classList.add('bubble-show');
+                bubble.innerHTML = '数据库已清空';
+                setTimeout(() => bubble.classList.remove('bubble-show'), 3000);
+            } else {
+                bubble.classList.add('bubble-show');
+                bubble.innerHTML = '清空失败: ' + result.message;
+                setTimeout(() => bubble.classList.remove('bubble-show'), 3000);
+            }
+        }
+        
+        // 初始化数据库
+        const initResult = window.mockDatabase.initDatabase();
+        if (initResult.success) {
+            bubble.classList.add('bubble-show');
+            bubble.innerHTML = '数据库初始化完成';
+            setTimeout(() => bubble.classList.remove('bubble-show'), 2000);
+        } else {
+            bubble.classList.add('bubble-show');
+            bubble.innerHTML = '数据库初始化失败: ' + initResult.message;
+            setTimeout(() => bubble.classList.remove('bubble-show'), 3000);
+        }
+        
+        // 初始化显示一些信息
+        dbContent.innerHTML = '<p>点击按钮操作数据库...</p>';
+    </script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "failed_capsules": [
+    {
+      "type": "Capsule",
+      "schema_version": "1.6.0",
+      "id": "failed_capsule_1777381594341",
+      "outcome": {
+        "status": "failed",
+        "score": 0.36
+      },
+      "gene": "gene_tool_integrity",
+      "trigger": [
+        "repeated_tool_usage:exec",
+        "user_feature_request",
+        "tool_bypass"
+      ],
+      "summary": "Failed: gene_tool_integrity on signals [repeated_tool_usage:exec, user_feature_request, tool_bypass]",
+      "diff_snapshot": "diff --git a/.env b/.env\nindex 382bbff..05214fa 100644\n--- a/.env\n+++ b/.env\n@@ -1,6 +1,6 @@\n # EvoMap Configuration\n A2A_HUB_URL=https://evomap.ai\n-# A2A_NODE_ID=your_node_id_here\n+A2A_NODE_ID=1822082641@qq.com\n # A2A_NODE_SECRET=your_secret_here\n \n # Set this to 0 to disable validator if you want\ndiff --git a/memory/evolution/evolution_state.json b/memory/evolution/evolution_state.json\nindex 9f90fac..29c6ac3 100644\n--- a/memory/evolution/evolution_state.json\n+++ b/memory/evolution/evolution_state.json\n@@ -6,5 +6,7 @@\n   \"genes_used\": [],\n   \"active_validation\": false,\n   \"validator_enabled\": false,\n-  \"git_head\": null\n+  \"git_head\": null,\n+  \"cycleCount\": 1,\n+  \"lastRun\": 1777380926182\n }\n\\ No newline at end of file\n",
+      "failure_reason": "constraint: critical_path_modified: .env; constraint: hollow_commit: 2 file(s) changed but 0 are constraint-counted code. Only GEP metadata was modified.; constraint: hub_solidify_offline_denied: no_offline_token; validation_failed: node scripts/validate-suite.js => node:internal/modules/cjs/loader:1459\n  throw err;\n  ^\n\nError: Cannot find module '/root/.openclaw/workspace/scripts/validate-suite.js'\n    at Module._resolveFilename (node:internal/modules/cjs/loader",
+      "learning_signals": [
+        "problem:reliability",
+        "action:repair",
+        "problem:protocol",
+        "action:optimize",
+        "area:prompt",
+        "problem:capability",
+        "action:innovate",
+        "area:orchestration",
+        "risk:validation"
+      ],
+      "constraint_violations": [
+        "critical_path_modified: .env",
+        "hollow_commit: 2 file(s) changed but 0 are constraint-counted code. Only GEP metadata was modified.",
+        "hub_solidify_offline_denied: no_offline_token"
+      ],
+      "env_fingerprint": {
+        "device_id": "a8d2619e6aff3ae1101276e00f154048",
+        "node_version": "v24.14.1",
+        "platform": "linux",
+        "arch": "x64",
+        "os_release": "6.8.0-71-generic",
+        "hostname": "6686b5888b30",
+        "evolver_version": "1.74.1",
+        "client": "@evomap/evolver",
+        "client_version": "1.74.1",
+        "cwd": "4a0ae5532b45",
+        "container": false,
+        "captured_at": "2026-04-28T13:06:32.266Z"
+      },
+      "blast_radius": {
+        "files": 0,
+        "lines": 0
+      },
+      "created_at": "2026-04-28T13:06:34.341Z",
+      "asset_id": "sha256:baa019cbebc0f86be16100a2cdc61a45552a31fa60dcfcbb313fd2af82014d8e"
+    }
+  ]
+}

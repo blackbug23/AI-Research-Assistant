@@ -1,107 +1,12 @@
-// 库存扣减引擎模块
+// 库存扣减引擎模块 - 真实SQLite实现
 // 基于FEFO（近效期先出）进行库存扣减
 
+const DatabaseManager = require('./database.js');
+
 class StockDeductionEngine {
-  constructor(stockData) {
-    this.stockData = stockData || [];
+  constructor() {
+    this.dbManager = new DatabaseManager();
     this.stockLog = [];
-  }
-
-  /**
-   * 扣减库存
-   * @param {array} deductionItems - 扣减项 [{reagent_master_id, quantity, unit}]
-   * @param {number} elnId - 实验记录ID
-   * @returns {object} - 扣减结果
-   */
-  deductStock(deductionItems, elnId) {
-    console.log('库存扣减开始:', deductionItems);
-
-    // 验证输入数据
-    if (!deductionItems || deductionItems.length === 0) {
-      return {
-        success: false,
-        error: '扣减项为空'
-      };
-    }
-
-    // 执行扣减事务
-    const deductionResult = [];
-    const errors = [];
-
-    for (const item of deductionItems) {
-      try {
-        const stockItem = this.findStockItem(item.reagent_master_id, item.quantity, item.unit);
-        
-        if (!stockItem) {
-          errors.push({
-            reagent_master_id: item.reagent_master_id,
-            reagent_name: item.reagent_name || '未知试剂',
-            quantity: item.quantity,
-            unit: item.unit,
-            error: '库存不足或找不到对应试剂'
-          });
-          continue;
-        }
-
-        // 扣减库存
-        stockItem.current_quantity -= item.quantity;
-        
-        if (stockItem.current_quantity < stockItem.min_quantity) {
-          errors.push({
-            reagent_master_id: item.reagent_master_id,
-            reagent_name: stockItem.reagent_name,
-            quantity: item.quantity,
-            unit: item.unit,
-            error: `库存低于最小值 ${stockItem.min_quantity}，触发提醒`
-          });
-        }
-
-        // 记录扣减日志
-        const logEntry = {
-          inventory_id: stockItem.id,
-          reagent_master_id: item.reagent_master_id,
-          reagent_name: stockItem.reagent_name,
-          quantity: item.quantity,
-          unit: item.unit,
-          change_type: 'deduction',
-          remaining: stockItem.current_quantity,
-          eln_id: elnId,
-          created_at: new Date().toISOString()
-        };
-
-        this.stockLog.push(logEntry);
-        deductionResult.push(logEntry);
-      } catch (error) {
-        errors.push({
-          reagent_master_id: item.reagent_master_id,
-          reagent_name: item.reagent_name || '未知试剂',
-          quantity: item.quantity,
-          unit: item.unit,
-          error: error.message
-        });
-      }
-    }
-
-    // 如果有错误，回滚事务
-    if (errors.length > 0) {
-      console.error('库存扣减失败，触发回滚:', errors);
-      this.rollbackTransaction();
-      
-      return {
-        success: false,
-        errors,
-        message: '库存不足，扣减失败'
-      };
-    }
-
-    console.log('库存扣减成功:', deductionResult);
-    
-    return {
-      success: true,
-      deduction_logs: deductionResult,
-      stock_logs: this.stockLog,
-      message: '库存扣减成功'
-    };
   }
 
   /**
@@ -112,37 +17,22 @@ class StockDeductionEngine {
    * @returns {object} - 库存项
    */
   findStockItem(reagentMasterId, quantity, unit) {
-    // 查找所有匹配的库存项
-    const matchingItems = this.stockData.filter(item => 
-      item.reagent_master_id === reagentMasterId &&
-      item.current_quantity >= quantity
-    );
+    try {
+      const stockItem = this.dbManager.db.prepare(
+        `SELECT * FROM inventory 
+         WHERE reagent_master_id = ? AND current_quantity >= ? 
+         ORDER BY expiration_date ASC LIMIT 1`
+      ).get(reagentMasterid, quantity);
 
-    if (matchingItems.length === 0) {
-      return null; // 库存不足
-    }
-
-    // FEFO：近效期先出，按有效期排序
-    const sortedItems = matchingItems.sort((a, b) => {
-      // 如果都有有效期，按有效期排序
-      if (a.expiration_date && b.expiration_date) {
-        return new Date(a.expiration_date) - new Date(b.expiration_date);
+      if (!stockItem) {
+        return null; // 库存不足
       }
-      // 否则按库存ID排序
-      return a.id - b.id;
-    });
-
-    // 返回最近有效期的项
-    return sortedItems[0];
-  }
-
-  /**
-   * 回滚事务
-   */
-  rollbackTransaction() {
-    console.log('库存扣减回滚事务');
-    // 清除所有日志
-    this.stockLog = [];
+      
+      return stockItem;
+    } catch (error) {
+      console.error('查找库存项失败:', error);
+      return null;
+    }
   }
 
   /**
@@ -197,6 +87,65 @@ class StockDeductionEngine {
       availabilityResult,
       warnings
     };
+  }
+
+  /**
+   * 扣减库存（真实数据库事务）
+   * @param {array} deductionItems - 扣减项 [{reagent_master_id, quantity, unit}]
+   * @param {number} elnId - 实验记录ID
+   * @returns {object} - 扣减结果
+   */
+  deductStock(deductionItems, elnId) {
+    console.log('库存扣减开始:', deductionItems);
+
+    // 验证输入数据
+    if (!deductionItems || deductionItems.length === 0) {
+      return {
+        success: false,
+        error: '扣减项为空'
+      };
+    }
+
+    // 执行扣减事务
+    try {
+      const deductionResult = this.dbManager.deductStockTransaction(deductionItems, elnId);
+      
+      console.log('库存扣减成功:', deductionResult);
+      
+      return {
+        success: true,
+        deduction_logs: deductionResult,
+        message: '库存扣减成功'
+      };
+    } catch (error) {
+      console.error('库存扣减失败:', error);
+      
+      const errors = deductionItems.map(item => {
+        return {
+          reagent_master_id: item.reagent_master_id,
+          reagent_name: item.reagent_name || '未知试剂',
+          quantity: item.quantity,
+          unit: item.unit,
+          error: error.message
+        };
+      });
+      
+      return {
+        success: false,
+        errors,
+        message: '库存不足，扣减失败'
+      };
+    }
+  }
+
+  /**
+   * 回滚事务
+   */
+  rollbackTransaction() {
+    console.log('库存扣减回滚事务');
+    // 数据库事务会自动回滚
+    // 这里只需要清除日志
+    this.stockLog = [];
   }
 
   /**

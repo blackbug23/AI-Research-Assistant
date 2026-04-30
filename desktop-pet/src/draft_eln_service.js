@@ -1,42 +1,13 @@
-// 实验记录草稿服务模块
+// 实验记录草稿服务模块 - 真实SQLite实现
 // 用于管理 draft_eln 表和实验记录采集
 
-const fs = require('fs');
-const path = require('path');
+const DatabaseManager = require('./database.js');
+const QRScanner = require('./scanner.js');
 
 class DraftELNService {
   constructor() {
-    this.draftsFilePath = path.join(__dirname, '../database/draft_eln_data.json');
-    this.loadDrafts();
-  }
-
-  /**
-   * 加载草稿数据
-   */
-  loadDrafts() {
-    try {
-      if (fs.existsSync(this.draftsFilePath)) {
-        const draftsData = fs.readFileSync(this.draftsFilePath, 'utf8');
-        this.drafts = JSON.parse(draftsData);
-      } else {
-        this.drafts = [];
-        this.saveDrafts();
-      }
-    } catch (error) {
-      console.error('加载草稿数据失败:', error);
-      this.drafts = [];
-    }
-  }
-
-  /**
-   * 保存草稿数据
-   */
-  saveDrafts() {
-    try {
-      fs.writeFileSync(this.draftsFilePath, JSON.stringify(this.drafts));
-    } catch (error) {
-      console.error('保存草稿数据失败:', error);
-    }
+    this.dbManager = new DatabaseManager();
+    this.qrScanner = new QRScanner();
   }
 
   /**
@@ -67,26 +38,7 @@ class DraftELNService {
       };
     }
 
-    const newDraft = {
-      id: this.drafts.length > 0 ? this.drafts[this.drafts.length - 1].id + 1 : 1,
-      title: draftData.title,
-      objective: draftData.objective,
-      principle: draftData.principle || '',
-      materials_json: draftData.materials_json,
-      raw_procedures: draftData.raw_procedures || '',
-      raw_results: draftData.raw_results || '',
-      status: 'draft',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-
-    this.drafts.push(newDraft);
-    this.saveDrafts();
-
-    return {
-      success: true,
-      draft: newDraft
-    };
+    return this.dbManager.createDraftTransaction(draftData);
   }
 
   /**
@@ -96,30 +48,7 @@ class DraftELNService {
    * @returns {object} - 更新结果
    */
   updateDraft(draftId, updateData) {
-    const draft = this.drafts.find(d => d.id === draftId);
-
-    if (!draft) {
-      return {
-        success: false,
-        error: '草稿不存在'
-      };
-    }
-
-    // 更新字段
-    if (updateData.title) draft.title = updateData.title;
-    if (updateData.objective) draft.objective = updateData.objective;
-    if (updateData.principle) draft.principle = updateData.principle;
-    if (updateData.materials_json) draft.materials_json = updateData.materials_json;
-    if (updateData.raw_procedures) draft.raw_procedures = updateData.raw_procedures;
-    if (updateData.raw_results) draft.raw_results = updateData.raw_results;
-    draft.updated_at = new Date().toISOString();
-
-    this.saveDrafts();
-
-    return {
-      success: true,
-      draft
-    };
+    return this.dbManager.updateDraftTransaction(draftId, updateData);
   }
 
   /**
@@ -128,10 +57,18 @@ class DraftELNService {
    * @returns {array} - 草稿列表
    */
   getDrafts(status = 'all') {
-    if (status === 'all') {
-      return this.drafts;
-    } else {
-      return this.drafts.filter(draft => draft.status === status);
+    try {
+      const query = status === 'all' ? 'SELECT * FROM draft_eln' : 'SELECT * FROM draft_eln WHERE status = ?';
+      const drafts = this.dbManager.db.prepare(query).all(status === 'all' ? [] : status);
+      return drafts.map(draft => {
+        return {
+          ...draft,
+          materials_json: JSON.parse(draft.materials_json)
+        };
+      });
+    } catch (error) {
+      console.error('获取草稿列表失败:', error);
+      return [];
     }
   }
 
@@ -141,8 +78,7 @@ class DraftELNService {
    * @returns {object} - 草稿数据
    */
   getDraftById(draftId) {
-    const draft = this.drafts.find(d => d.id === draftId);
-    return draft;
+    return this.dbManager.getDraftTransaction(draftId);
   }
 
   /**
@@ -151,22 +87,7 @@ class DraftELNService {
    * @returns {object} - 删除结果
    */
   deleteDraft(draftId) {
-    const index = this.drafts.findIndex(d => d.id === draftId);
-
-    if (index === -1) {
-      return {
-        success: false,
-        error: '草稿不存在'
-      };
-    }
-
-    this.drafts.splice(index, 1);
-    this.saveDrafts();
-
-    return {
-      success: true,
-      message: '草稿删除成功'
-    };
+    return this.dbManager.deleteDraftTransaction(draftId);
   }
 
   /**
@@ -175,49 +96,58 @@ class DraftELNService {
    * @returns {object} - 完成结果
    */
   completeDraft(draftId) {
-    const draft = this.drafts.find(d => d.id === draftId);
+    try {
+      this.dbManager.db.prepare(
+        `UPDATE draft_eln SET status = 'completed', updated_at = CURRENT_TIMESTAMP WHERE id = ?`
+      ).run(draftId);
 
-    if (!draft) {
+      const draft = this.getDraftById(draftId);
+      return {
+        success: true,
+        draft
+      };
+    } catch (error) {
+      console.error('完成草稿失败:', error);
       return {
         success: false,
-        error: '草稿不存在'
+        error: '更新草稿状态失败'
       };
     }
-
-    draft.status = 'completed';
-    draft.updated_at = new Date().toISOString();
-    this.saveDrafts();
-
-    return {
-      success: true,
-      draft
-    };
   }
 
   /**
-   * 模拟实验记录采集流程
+   * 实验记录采集流程
    * @param {object} stepData - 步骤数据
    * @returns {object} - 采集结果
    */
   simulateStepCollection(stepData) {
-    console.log('模拟实验记录采集流程:', stepData);
+    console.log('实验记录采集流程:', stepData);
     
-    // 模拟语音输入采集
+    // 语音输入采集（预留接口）
     if (stepData.voice_input) {
       console.log('语音输入:', stepData.voice_input);
+      // 后续集成语音API
     }
 
-    // 模拟QR码扫描采集试剂
+    // QR码扫描采集试剂
     if (stepData.qr_scanned) {
-      console.log('QR码扫描:', stepData.qr_scanned);
+      const scanResult = this.qrScanner.scanQR(stepData.qr_scanned);
+      console.log('QR码扫描结果:', scanResult);
+      return scanResult;
     }
 
-    // 模拟库存选择试剂
+    // 库存选择试剂
     if (stepData.stock_selected) {
-      console.log('库存选择:', stepData.stock_selected);
+      const stockResult = this.qrScanner.selectReagentFromStock(
+        stepData.stock_selected.reagent_master_id,
+        stepData.stock_selected.quantity,
+        stepData.stock_selected.unit
+      );
+      console.log('库存选择结果:', stockResult);
+      return stockResult;
     }
 
-    // 模拟图片采集
+    // 图片采集（预留接口）
     if (stepData.image_path) {
       console.log('图片采集:', stepData.image_path);
     }

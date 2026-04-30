@@ -3,6 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const PDFDocument = require('pdfkit');
 const LLMService = require('./llm_service.js');
 
 class TemplateEngine {
@@ -203,6 +204,124 @@ class TemplateEngine {
 
   /**
    * 生成PDF格式的ELN记录
+   * @param {object} elnRecord - ELN记录
+   * @returns {string} - PDF文件路径
+   */
+  generatePDF(elnRecord) {
+    const outputPath = process.env.PDF_OUTPUT_PATH || './output';
+    const fontPath = process.env.PDF_FONT_PATH || './fonts/default.ttf';
+    const fileName = `${elnRecord.header.experiment_code}.pdf`;
+    const pdfPath = path.join(outputPath, fileName);
+
+    // 确保输出目录存在
+    if (!fs.existsSync(outputPath)) {
+      fs.mkdirSync(outputPath, { recursive: true });
+    }
+
+    // 创建PDF文档
+    const doc = new PDFDocument({ size: 'A4', margins: { top: 50, bottom: 50, left: 50, right: 50 } });
+    const writeStream = fs.createWriteStream(pdfPath);
+    doc.pipe(writeStream);
+
+    // PDF标题
+    doc.font('Helvetica-Bold').fontSize(24);
+    doc.text('实验记录', { align: 'center' });
+    doc.moveDown();
+
+    // 基本信息
+    doc.font('Helvetica').fontSize(12);
+    doc.text(`实验编号: ${elnRecord.header.experiment_code}`);
+    doc.text(`实验名称: ${elnRecord.header.experiment_title}`);
+    doc.text(`实验日期: ${elnRecord.header.date}`);
+    doc.text(`实验人员: ${elnRecord.header.operator}`);
+    doc.text(`实验地点: ${elnRecord.header.location}`);
+    doc.moveDown();
+
+    // 实验目的
+    doc.font('Helvetica-Bold').fontSize(14);
+    doc.text('一、实验目的');
+    doc.font('Helvetica').fontSize(12);
+    doc.text(elnRecord.content.objective);
+    doc.moveDown();
+
+    // 实验原理
+    doc.font('Helvetica-Bold').fontSize(14);
+    doc.text('二、实验原理');
+    doc.font('Helvetica').fontSize(12);
+    doc.text(elnRecord.content.principle);
+    doc.moveDown();
+
+    // 实验材料
+    doc.font('Helvetica-Bold').fontSize(14);
+    doc.text('三、实验材料');
+    doc.font('Helvetica').fontSize(12);
+    doc.text(elnRecord.content.materials);
+    doc.moveDown();
+
+    // 实验步骤
+    doc.font('Helvetica-Bold').fontSize(14);
+    doc.text('四、实验步骤');
+    doc.font('Helvetica').fontSize(12);
+    doc.text(elnRecord.content.procedures);
+    doc.moveDown();
+
+    // 实验结果
+    doc.font('Helvetica-Bold').fontSize(14);
+    doc.text('五、实验结果');
+    doc.font('Helvetica').fontSize(12);
+    doc.text(elnRecord.content.results);
+    doc.moveDown();
+
+    // 实验结论
+    doc.font('Helvetica-Bold').fontSize(14);
+    doc.text('六、实验结论');
+    doc.font('Helvetica').fontSize(12);
+    doc.text(elnRecord.content.conclusion);
+    doc.moveDown();
+
+    // 物料清单
+    doc.font('Helvetica-Bold').fontSize(14);
+    doc.text('七、物料清单');
+    doc.font('Helvetica').fontSize(12);
+    doc.text(elnRecord.footer.materials_list);
+    doc.moveDown();
+
+    // 安全注意事项
+    doc.font('Helvetica-Bold').fontSize(14);
+    doc.text('八、安全注意事项');
+    doc.font('Helvetica').fontSize(12);
+    doc.text(elnRecord.footer.safety_notes);
+    doc.moveDown();
+
+    // 参考文献
+    doc.font('Helvetica-Bold').fontSize(14);
+    doc.text('九、参考文献');
+    doc.font('Helvetica').fontSize(12);
+    doc.text(elnRecord.footer.references);
+    doc.moveDown();
+
+    // 签名区
+    doc.font('Helvetica-Bold').fontSize(14);
+    doc.text('十、签名');
+    doc.font('Helvetica').fontSize(12);
+    doc.text('实验人员: ___________');
+    doc.text('复核人员: ___________');
+    doc.text('批准人员: ___________');
+    doc.moveDown();
+
+    // 页脚
+    doc.fontSize(10);
+    doc.text(`生成时间: ${elnRecord.metadata.generation_date}`);
+    doc.text(`材料数量: ${elnRecord.metadata.materials_count}`);
+    doc.text(`文件路径: ${pdfPath}`);
+
+    doc.end();
+
+    return pdfPath;
+  }
+
+  /**
+   * 生成PDF格式的文本（用于预览）
    * @param {object} elnRecord - ELN记录
    * @returns {string} - PDF格式文本
    */

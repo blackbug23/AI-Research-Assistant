@@ -1,18 +1,22 @@
-// ELN生成与库存扣减端到端模块
+// ELN生成与库存扣减端到端模块 - 真实实现
 
+const fs = require('fs');
+const path = require('path');
 const TemplateEngine = require('./template_engine.js');
 const StockDeductionEngine = require('./stock_deduction.js');
 const FactChecker = require('./fact_checker.js');
 const DraftELNService = require('./draft_eln_service.js');
 const LLMService = require('./llm_service.js');
+const DatabaseManager = require('./database.js');
 
 class ELNGenerationSystem {
   constructor() {
     this.templateEngine = new TemplateEngine();
-    this.stockDeductionEngine = new StockDeductionEngine(StockDeductionEngine.generateMockStockData());
+    this.stockDeductionEngine = new StockDeductionEngine();
     this.factChecker = new FactChecker();
     this.draftELNService = new DraftELNService();
     this.llmService = new LLMService();
+    this.dbManager = new DatabaseManager();
     this.startTime = null;
   }
 
@@ -127,15 +131,11 @@ class ELNGenerationSystem {
 
     // 步骤6：生成PDF
     result.steps.push('生成PDF');
-    const pdfText = this.templateEngine.generatePDFText(templateResult.eln_record);
-    const pdfFileName = `${templateResult.eln_record.header.experiment_code}.pdf`;
-    const pdfPath = `./eln_pdfs/${pdfFileName}`;
+    const pdfPath = this.templateEngine.generatePDF(templateResult.eln_record);
     
     try {
-      // 模拟生成PDF文件
-      // fs.writeFileSync(pdfPath, pdfText);
       result.pdf_path = pdfPath;
-      result.pdf_content = pdfText;
+      result.pdf_content = fs.readFileSync(pdfPath, 'utf8');
     } catch (error) {
       result.errors.push(`PDF生成失败：${error.message}`);
       return result;
@@ -160,10 +160,15 @@ class ELNGenerationSystem {
       created_at: new Date().toISOString()
     };
 
-    // 模拟存入数据库
-    // this.saveELNRecord(elnRecord);
-    result.eln_record_id = draft.id;
-    result.eln_record_data = elnRecord;
+    // 存入数据库
+    const saveResult = this.dbManager.completeELNTransaction(elnRecord);
+    if (saveResult.success) {
+      result.eln_record_id = saveResult.eln_id;
+      result.eln_record_data = elnRecord;
+    } else {
+      result.errors.push(`存入eln_records失败: ${saveResult.error}`);
+      return result;
+    }
 
     // 步骤8：删除草稿
     result.steps.push('删除草稿');
@@ -175,7 +180,7 @@ class ELNGenerationSystem {
 
     // 步骤9：成功动画和统计
     result.steps.push('成功动画和统计');
-    const successAnimation = this.generateSuccessAnimation();
+    const successAnimation = this.generateSuccessAnimation(result);
 
     // 最终结果
     result.success = true;
@@ -188,7 +193,7 @@ class ELNGenerationSystem {
       llm_calls_count: templateResult.metadata.llm_calls,
       steps_count: result.steps.length
     };
-    result.success_animation = this.generateSuccessAnimation(result);
+    result.success_animation = successAnimation;
 
     return result;
   }

@@ -5,7 +5,7 @@
   "main": "simple_app.js",
   "scripts": {
     "start": "electron .",
-    "test": "node simple_test.js",
+    "test": "node __tests__/test_all.js",
     "qr-test": "node simple_test.js",
     "build": "electron-packager . desktop-pet --platform=linux --arch=x64 --out=dist",
     "build:win": "electron-builder --win",
@@ -23,7 +23,9 @@
   "type": "commonjs",
   "dependencies": {
     "electron": "^29.0.0",
-    "axios": "^1.7.2"
+    "axios": "^1.7.2",
+    "pdfkit": "^0.14.0",
+    "better-sqlite3": "^9.0.0"
   },
   "devDependencies": {
     "electron-builder": "^24.6.4"
@@ -39,10 +41,14 @@
       "simple_db.js",
       "simple_index.html",
       "simple_test.js",
+      "src/**/*",
+      "__tests__/**/*",
       "package.json",
       "assets/**/*",
       "README.md",
-      "WINDOWS_INSTALL.md"
+      "WINDOWS_INSTALL.md",
+      "templates/**/*",
+      "database/**/*"
     ],
     "win": {
       "target": [

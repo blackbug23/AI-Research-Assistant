@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>桌面宠物 - 网页版本</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        h2 {
+            color: #666;
+            margin-top: 30px;
+            margin-bottom: 10px;
+        }
+        
+        code {
+            background-color: #eee;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+        }
+        
+        .button {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>桌面宠物网页版</h1>
+        
+        <div class="section">
+            <h2>📥 下载链接</h2>
+            <ul>
+                <li><a href="https://github.com/blackbug23/AI-Research-Assistant" target="_blank">GitHub 仓库</a></li>
+                <li><a href="./desktop-pet.tar.gz" target="_blank">桌面宠物压缩包</a></li>
+                <li><a href="./desktop-pet-full.tar.gz" target="_blank">完整包（包含所有依赖）</a></li>
+            </ul>
+        </div>
+        
+        <div class="section">
+            <h2>📋 安装步骤</h2>
+            
+            <h3>方法1：网页版本（最简单）</h3>
+            <ol>
+                <li>下载 `desktop-pet.tar.gz`</li>
+                <li>解压缩到任意文件夹</li>
+                <li>双击打开 `index.html`</li>
+                <li>桌宠就会出现在网页中</li>
+            </ol>
+            
+            <h3>方法2：Node.js 版本</h3>
+            <ol>
+                <li>安装 Node.js（v18+）</li>
+                <li>下载 `desktop-pet.tar.gz`</li>
+                <li>解压缩</li>
+                <li>打开 PowerShell 或命令提示符</li>
+                <li>运行：<code>npm install</code></li>
+                <li>运行：<code>npm start</code></li>
+            </ol>
+        </div>
+        
+        <div class="section">
+            <h2>⚠️ 常见问题</h2>
+            
+            <h3>1. npm install 失败</h3>
+            <p>解决方案：</p>
+            <code>npm cache clean --force</code>
+            <br>
+            <code>npm install</code>
+            
+            <h3>2. Node.js 版本问题</h3>
+            <p>请使用 Node.js v18+ 版本</p>
+            
+            <h3>3. electron 安装失败</h3>
+            <p>可以先安装网页版本，无需 electron</p>
+        </div>
+        
+        <div class="section">
+            <h2>📦 文件清单</h2>
+            <ul>
+                <li><code>index.html</code> - 主页面</li>
+                <li><code>main.js</code> - JavaScript 逻辑</li>
+                <li><code>simple_main.js</code> - 简化版本</li>
+                <li><code>package.json</code> - 项目配置</li>
+                <li><code>README.md</code> - 说明文档</li>
+                <li><code>WINDOWS_INSTALL.md</code> - Windows 安装指南</li>
+                <li><code>assets/icon.png</code> - 图标</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

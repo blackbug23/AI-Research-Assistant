@@ -13,6 +13,7 @@ class ELNGenerationSystem {
     this.factChecker = new FactChecker();
     this.draftELNService = new DraftELNService();
     this.llmService = new LLMService();
+    this.startTime = null;
   }
 
   /**
@@ -22,6 +23,7 @@ class ELNGenerationSystem {
    */
   async generateELNAndDeductStock(draftData) {
     console.log('开始ELN生成与库存扣减流程');
+    this.startTime = Date.now();
 
     const result = {
       success: false,
@@ -186,7 +188,7 @@ class ELNGenerationSystem {
       llm_calls_count: templateResult.metadata.llm_calls,
       steps_count: result.steps.length
     };
-    result.success_animation = successAnimation;
+    result.success_animation = this.generateSuccessAnimation(result);
 
     return result;
   }
@@ -195,7 +197,12 @@ class ELNGenerationSystem {
    * 生成成功动画
    * @returns {string} - 动画描述
    */
-  generateSuccessAnimation() {
+  generateSuccessAnimation(result) {
+    const elapsedTime = Date.now() - this.startTime;
+    const materialsCount = result.statistics?.materials_count || 0;
+    const deductionLogsCount = result.statistics?.deduction_items_count || 0;
+    const proceduresLength = result.eln_record?.content?.procedures?.length || 0;
+
     return `
 🎉 ELN生成成功！🎉
 
@@ -206,10 +213,10 @@ class ELNGenerationSystem {
 4. PDF生成动画
 
 统计信息：
-- 实验步骤：${this.eln_record?.content?.procedures?.length || 0} 步骤
-- 试剂用量：${this.materials_json?.length || 0} 种试剂
-- 库存扣减：${this.deduction_result?.deduction_logs?.length || 0} 项扣减
-- 用时：${Date.now() - this.startTime || 0} 毫秒
+- 实验步骤：${proceduresLength} 步骤
+- 试剂用量：${materialsCount} 种试剂
+- 库存扣减：${deductionLogsCount} 项扣减
+- 用时：${elapsedTime} 毫秒
 `;
   }
 

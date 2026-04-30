@@ -7,7 +7,8 @@ class LLMService {
   constructor() {
     this.apiUrl = process.env.LLM_API_URL || 'http://localhost:11434/api/generate';
     this.model = process.env.LLM_MODEL || 'llama2';
-    this.temperature = 0.3; // 固定温度
+    // 从环境变量读取温度，默认为 0.3
+    this.temperature = process.env.LLM_TEMPERATURE ? parseFloat(process.env.LLM_TEMPERATURE) : 0.3;
   }
 
   /**
@@ -51,6 +52,9 @@ class LLMService {
         await this.sleep(waitTime);
       }
     }
+    
+    // 如果所有重试都失败
+    throw new Error('LLM调用超时，重试次数耗尽');
   }
 
   /**

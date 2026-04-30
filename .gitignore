@@ -1,0 +1,31 @@
+# .gitignore for OpenClaw workspace
+
+# Large files
+desktop-pet-project.tar.gz
+desktop-pet/desktop-pet-full.tar.gz
+desktop-pet/desktop-pet.tar.gz
+
+# IDE configurations
+.cursor/
+.clawhub/
+
+# OpenClaw internal configs
+.openclaw/
+
+# Local environment files
+.env
+
+# Memory files (personal logs)
+memory/evolution/
+memory/*.json
+memory/*.jsonl
+
+# Skill cache files
+skills/.skills_store_lock.json
+
+# Temporary files
+*.log
+*.tmp
+
+# Node modules (if any)
+node_modules/

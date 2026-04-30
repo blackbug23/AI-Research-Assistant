@@ -1,20 +1,22 @@
 {
   "name": "desktop-pet",
   "version": "1.0.0",
-  "description": "桌面宠物应用",
-  "main": "app.js",
+  "description": "QR码扫描入库桌面宠物",
+  "main": "simple_app.js",
   "scripts": {
     "start": "electron .",
+    "test": "node simple_test.js",
+    "qr-test": "node simple_test.js",
     "build": "electron-packager . desktop-pet --platform=linux --arch=x64 --out=dist",
     "build:win": "electron-builder --win",
-    "windows-build": "node build-windows.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "windows-build": "node build-windows.js"
   },
   "keywords": [
+    "qr",
+    "inventory",
     "desktop",
     "pet",
-    "electron",
-    "sqlite"
+    "electron"
   ],
   "author": "",
   "license": "MIT",
@@ -32,11 +34,10 @@
       "output": "dist"
     },
     "files": [
-      "app.js",
-      "main.js",
-      "simple_main.js",
-      "preload.js",
-      "index.html",
+      "simple_app.js",
+      "simple_db.js",
+      "simple_index.html",
+      "simple_test.js",
       "package.json",
       "assets/**/*",
       "README.md",

@@ -1,128 +1,140 @@
-# 桌面宠物应用
+# 桌面宠物 QR 码扫描入库系统
 
-一个简单的桌面宠物应用，具有以下功能：
+## 功能概述
 
-## 功能特点
+这是一个完整的 QR 码扫描入库桌面宠物应用，实现了商品二维码到数据库的端到端流程，包括：
 
-1. **桌宠动画**：
-   - 待机动画（上下浮动）
-   - 点击反应动画
-   - 气泡提示
+1. **QR码扫描** - 模拟扫码功能
+2. **入库逻辑** - 写入 goods_in 表，storage_location 置空
+3. **后台定时器** - 监控空位置记录，触发桌宠动画提醒
+4. **位置录入** - 快捷按钮/语音输入，更新 storage_location 字段
 
-2. **拖拽功能**：
-   - 可以拖拽桌宠在桌面上移动
-   - 拖拽时显示提示气泡
+## 核心流程
 
-3. **数据库功能**：
-   - 双击桌宠腹部打开数据库查看器
-   - SQLite本地数据库（better-sqlite3）
-   - 两个表：goods_in（入库记录）和inventory（库存）
+### 收货 → 提醒 → 补录位置
+1. **扫描QR码** - 扫描商品二维码
+2. **入库数据** - 写入 goods_in 表（storage_location 为空）
+3. **定时监控** - 每5分钟检查空位置记录
+4. **桌宠提醒** - 发现空位置 → 触发动画 + 气泡提示
+5. **位置录入** - 语音或手动录入存放位置
+6. **更新数据库** - 更新 storage_location 字段
 
-4. **数据库操作**：
-   - 插入示例数据
-   - 查询库存数据
-   - 清空数据库
+## 运行方式
 
-## 技术栈
-
-- **Electron**：桌面应用框架
-- **React**：前端UI
-- **better-sqlite3**：本地SQLite数据库
-- **HTML/CSS/JavaScript**：界面实现
-
-## 数据库设计
-
-### goods_in表（入库记录）
-- id：主键
-- goods_name：商品名称
-- quantity：数量
-- price：价格
-- arrival_date：入库时间
-- supplier：供应商
-- notes：备注
-
-### inventory表（库存）
-- id：主键
-- goods_id：商品ID
-- goods_name：商品名称
-- current_quantity：当前数量
-- min_quantity：最小库存
-- max_quantity：最大库存
-- location：存放位置
-- last_update：最后更新时间
-
-## 如何使用
-
-### Windows 版本
-
-1. **安装依赖**（需要 Node.js）：
-   ```bash
-   npm install
-   ```
-
-2. **启动应用**：
-   ```bash
-   npm start
-   ```
-
-3. **使用应用**：
-   - 桌宠会出现在桌面右上角
-   - 可以拖拽桌宠移动
-   - 双击桌宠腹部打开数据库查看器
-   - 在查看器中可以操作数据库
-
-4. **打包 Windows 应用**：
-   ```bash
-   npm run build:win
-   ```
-   
-### Windows 直接安装
-
-1. **下载预编译版本**：
-   - 从 GitHub Releases 下载 `desktop-pet-win-x64.exe`
-   - 双击安装程序运行
-
-2. **Windows 特有功能**：
-   - 任务栏托盘图标
-   - 开机自启动（可选）
-   - Windows 通知支持
-
-### 详细 Windows 安装指南
-
-请查看 [WINDOWS_INSTALL.md](./WINDOWS_INSTALL.md)
-
-## 项目结构
-
-```
-desktop-pet/
-├── main.js              # Electron主进程
-├── preload.js           # 数据库操作模块
-├── index.html           # HTML界面
-├── package.json         # 项目配置
-├── assets/
-│   └── icon.png         # 托盘图标
-└── README.md            # 说明文档
+### 安装依赖
+```bash
+npm install
 ```
 
-## 团队协作角色
+### 启动应用
+```bash
+npm start
+```
 
-### 1. 全栈开发 (Electron/Flutter)
-- 负责桌面应用框架搭建
-- UI界面实现
-- 多平台适配
+### 测试QR码扫描
+```bash
+node qr_test.js
+```
 
-### 2. 后端/同步算法工程师 (WebSocket, CRDT, SQLite调优)
-- 设计数据库schema
-- SQLite性能优化
-- 未来扩展数据同步方案
+### 测试数据库
+```bash
+node test_database.js
+```
 
-### 3. AI工程师 (LLM部署、NER、合规模型)
-- 设计AI交互逻辑
-- 自然语言处理功能
-- 合规检查模型
+## 功能演示
 
-### 4. 产品/项目经理 (测试、实验室流程顾问)
-- 制定项目计划
-- 验收标准制定
-- 测试方案设计
-- 流程规范化
+### QR码扫描入库
+应用支持模拟QR码扫描：
+- 商品名称：笔记本电脑 数量：5 价格：2999.99 供应商：供应商A
+- 商品名称：鼠标 数量：100 价格：49.99 供应商：供应商B
+- 商品名称：键盘 数量：50 价格：129.99 供应商：供应商C
+- 商品名称：显示器 数量：20 价格：999.99 供应商：供应商D
+
+### 后台定时器
+- 每5分钟自动检查 goods_in 表中的空位置记录
+- 发现空位置 → 触发桌宠动画（摇动）
+- 显示气泡提示："新到的XXX还没放好~"
+
+### 位置录入
+- 快捷按钮点击 → 录入位置对话框
+- 模拟语音输入 → "仓库A-货架1", "仓库B-货架3"
+- 更新 storage_location 字段
+
+## 数据库结构
+
+### goods_in 表
+```sql
+CREATE TABLE goods_in (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  goods_name TEXT NOT NULL,
+  quantity INTEGER NOT NULL,
+  price DECIMAL(10,2),
+  arrival_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  supplier TEXT,
+  notes TEXT,
+  qrcode_data TEXT,
+  storage_location TEXT DEFAULT NULL,
+  last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### inventory 表
+```sql
+CREATE TABLE inventory (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  goods_id INTEGER NOT NULL,
+  goods_name TEXT NOT NULL,
+  current_quantity INTEGER NOT NULL DEFAULT 0,
+  min_quantity INTEGER NOT NULL DEFAULT 0,
+  max_quantity INTEGER NOT NULL DEFAULT 1000,
+  location TEXT,
+  last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+## 使用界面
+
+### 桌宠功能
+- 透明窗口，可拖拽移动
+- 点击桌宠触发动画
+- 系统托盘支持
+
+### 控制面板
+- QR码扫描功能
+- 数据库管理功能
+- 空位置检查
+- 数据查询
+
+### 提醒气泡
+- 发现空位置商品时显示
+- "录入位置"快捷按钮
+- "忽略"按钮
+
+## Windows 版本
+
+### 打包为 Windows 应用
+```bash
+npm run windows-build
+```
+
+### Windows 特有功能
+- 无边框窗口
+- 系统托盘图标
+- 开机自启动
+
+## 后续扩展
+
+### QR码扫描增强
+- JSQR 库实现摄像头扫码
+- QR码截图识别功能
+- QR码批量扫描
+
+### 语音输入增强
+- Web Speech API 语音识别
+- 本地 Whisper 模型
+- 语音录入优化
+
+### Flutter 版本
+- Android mobile_scanner 扫码
+- Flutter 桌面宠物版本
+- Windows/Android 双端支持

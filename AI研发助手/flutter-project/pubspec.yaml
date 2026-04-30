@@ -1,0 +1,56 @@
+name: ai_desktop_pet
+description: AI研发助手 - 桌面宠物应用
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.19.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # 状态管理
+  riverpod: ^2.4.3
+  
+  # 数据库
+  drift: ^3.4.0
+  sqlite3_flutter_libs: ^0.5.7
+  
+  # 网络
+  dio: ^5.3.3
+  web_socket_channel: ^2.3.0
+  
+  # 动画
+  lottie: ^2.7.0
+  flutter_animate: ^4.2.0
+  
+  # Windows特殊依赖
+  bitsdojo_window: ^0.1.1
+  window_manager: ^0.3.2
+  system_tray: ^1.1.0
+  
+  # Android特殊依赖
+  flutter_window_manager: ^0.2.2
+  
+  # 实用工具
+  uuid: ^4.2.1
+  path_provider: ^2.0.15
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  
+  drift_dev:
+    sdk: flutter
+  
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
+  generate: true
+
+  assets:
+    - assets/images/
+    - assets/lottie/
+    - assets/sounds/

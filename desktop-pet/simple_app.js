@@ -1,6 +1,5 @@
 const { app, BrowserWindow } = require('electron');
-const path = require('path');
-const Database = require('./database.js');
+const Database = require('./simple_db.js');
 
 let mainWindow;
 
@@ -10,21 +9,24 @@ function createWindow() {
     height: 300,
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false
+      contextIsolation: false,
+      enableRemoteModule: true
     },
     frame: false,
     transparent: true,
     alwaysOnTop: true,
-    skipTaskbar: true
+    skipTaskbar: true,
+    movable: true,
+    resizable: false
   });
 
-  mainWindow.loadFile('index.html');
+  mainWindow.loadFile('simple_index.html');
   mainWindow.setMenu(null);
 
   // 暴露数据库API到window对象
   mainWindow.webContents.on('dom-ready', () => {
     mainWindow.webContents.executeJavaScript(`
-      window.dbApi = {
+      window.simpleApi = {
         insertQR: function(qrData) {
           const result = require('electron').ipcRenderer.sendSync('insert-from-qrcode', qrData);
           return result;
@@ -41,6 +43,10 @@ function createWindow() {
           const result = require('electron').ipcRenderer.sendSync('query-goods-in');
           return result;
         },
+        queryInventory: function() {
+          const result = require('electron').ipcRenderer.sendSync('query-inventory');
+          return result;
+        },
         clearData: function() {
           const result = require('electron').ipcRenderer.sendSync('clear-database');
           return result;
@@ -52,7 +58,7 @@ function createWindow() {
             '商品名称：键盘 数量：50 价格：129.99 供应商：供应商C'
           ];
           const randomQR = qrcodes[Math.floor(Math.random() * qrcodes.length)];
-          return window.dbApi.insertQR(randomQR);
+          return window.simpleApi.insertQR(randomQR);
         },
         simulateVoice: function() {
           const locations = [
@@ -111,15 +117,21 @@ ipcMain.on('query-goods-in', (event) => {
   event.returnValue = result;
 });
 
+ipcMain.on('query-inventory', (event) => {
+  const result = Database.queryInventoryData();
+  event.returnValue = result;
+});
+
 ipcMain.on('clear-database', (event) => {
   const result = Database.clearDatabase();
   event.returnValue = result;
 });
 
-// 初始化数据库
-Database.initDatabase();
-
 app.whenReady().then(() => {
+  // 初始化数据库
+  Database.loadData();
+  
+  // 创建窗口
   createWindow();
 });
 

@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>桌面宠物 - QR码扫描系统</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: transparent;
+            font-family: 'Arial', sans-serif;
+        }
+
+        #pet-container {
+            position: fixed;
+            top: 50px;
+            right: 50px;
+            width: 150px;
+            height: 150px;
+            cursor: pointer;
+            transition: transform 0.3s;
+            z-index: 9999;
+        }
+
+        #pet {
+            width: 150px;
+            height: 150px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 3px solid white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .pet-face {
+            width: 80px;
+            height: 80px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            position: absolute;
+            top: 35px;
+            left: 35px;
+        }
+
+        .eye {
+            width: 15px;
+            height: 15px;
+            background-color: black;
+            border-radius: 50%;
+            position: absolute;
+        }
+
+        .eye-left {
+            top: 25px;
+            left: 20px;
+        }
+
+        .eye-right {
+            top: 25px;
+            right: 20px;
+        }
+
+        .mouth {
+            width: 30px;
+            height: 5px;
+            background-color: black;
+            border-radius: 5px;
+            position: absolute;
+            top: 50px;
+            left: 25px;
+        }
+
+        .shake-animation {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+
+        .reminder-bubble {
+            position: absolute;
+            bottom: 170px;
+            left: -50px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 2px solid #ff6b6b;
+            border-radius: 10px;
+            padding: 15px;
+            width: 250px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            animation: bubble-appear 0.5s ease-out;
+            z-index: 10000;
+        }
+
+        .reminder-title {
+            color: #ff6b6b;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .reminder-content {
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+
+        .reminder-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .reminder-btn {
+            padding: 6px 12px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        @keyframes bubble-appear {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .control-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 15px;
+            width: 200px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            z-index: 9999;
+        }
+
+        .control-btn {
+            padding: 8px 12px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px 0;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <!-- 桌宠 -->
+    <div id="pet-container">
+        <div id="pet">
+            <div class="pet-face">
+                <div class="eye eye-left"></div>
+                <div class="eye eye-right"></div>
+                <div class="mouth"></div>
+            </div>
+        </div>
+        <!-- 提醒气泡 -->
+        <div id="reminder-bubble" class="reminder-bubble" style="display: none;">
+            <div class="reminder-title">📢 位置提醒</div>
+            <div id="reminder-content" class="reminder-content"></div>
+            <div class="reminder-buttons">
+                <button id="record-btn" class="reminder-btn">录入位置</button>
+                <button id="ignore-btn" class="reminder-btn">忽略</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 控制面板 -->
+    <div class="control-panel">
+        <button id="scan-btn" class="control-btn">扫描QR码</button>
+        <button id="check-btn" class="control-btn">检查空位置</button>
+        <button id="show-btn" class="control-btn">显示数据</button>
+        <button id="clear-btn" class="control-btn">清空数据</button>
+    </div>
+
+    <script>
+        // 拖拽桌宠
+        let isDragging = false;
+        let startX, startY;
+
+        const petContainer = document.getElementById('pet-container');
+        petContainer.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+                
+                petContainer.style.top = (parseInt(petContainer.style.top) || 50) + deltaY + 'px';
+                petContainer.style.left = (parseInt(petContainer.style.left) || 50) + deltaX + 'px';
+                
+                startX = e.clientX;
+                startY = e.clientY;
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        // 点击桌宠
+        const pet = document.getElementById('pet');
+        pet.addEventListener('click', () => {
+            pet.classList.add('shake-animation');
+            setTimeout(() => {
+                pet.classList.remove('shake-animation');
+            }, 500);
+        });
+
+        // QR码扫描
+        document.getElementById('scan-btn').addEventListener('click', () => {
+            const qrcodes = [
+                '商品名称：笔记本电脑 数量：5 价格：2999.99 供应商：供应商A',
+                '商品名称：鼠标 数量：100 价格：49.99 供应商：供应商B',
+                '商品名称：键盘 数量：50 价格：129.99 供应商：供应商C'
+            ];
+            
+            const randomQR = qrcodes[Math.floor(Math.random() * qrcodes.length)];
+            const result = window.dbApi.insertQR(randomQR);
+            
+            if (result.success) {
+                alert(`入库成功：${result.goods_name}, 数量：${result.quantity}`);
+            }
+        });
+
+        // 检查空位置
+        document.getElementById('check-btn').addEventListener('click', () => {
+            const result = window.dbApi.checkEmpty();
+            
+            if (result.success && result.count > 0) {
+                const message = `新到的${result.data.map(g => g.goods_name).join(', ')}还没放好~`;
+                
+                // 显示提醒气泡
+                const reminderBubble = document.getElementById('reminder-bubble');
+                const reminderContent = document.getElementById('reminder-content');
+                
+                reminderContent.textContent = message;
+                reminderBubble.style.display = 'block';
+                
+                // 触发桌宠动画
+                pet.classList.add('shake-animation');
+                setTimeout(() => {
+                    pet.classList.remove('shake-animation');
+                }, 500);
+            } else {
+                alert('没有未录入位置的商品');
+            }
+        });
+
+        // 录入位置
+        document.getElementById('record-btn').addEventListener('click', () => {
+            const location = window.dbApi.simulateVoice();
+            
+            const goodsId = prompt('请输入商品ID：');
+            if (goodsId) {
+                const result = window.dbApi.updateLocation(goodsId, location);
+                if (result.success) {
+                    alert(`位置更新成功：${location}`);
+                }
+            }
+        });
+
+        // 忽略提醒
+        document.getElementById('ignore-btn').addEventListener('click', () => {
+            document.getElementById('reminder-bubble').style.display = 'none';
+        });
+
+        // 显示数据
+        document.getElementById('show-btn').addEventListener('click', () => {
+            const result = window.dbApi.queryData();
+            
+            if (result.success && result.data.length > 0) {
+                const data = result.data.map(g => {
+                    return `${g.id}: ${g.goods_name} (${g.quantity}) - ${g.storage_location || '未录入'}`;
+                }).join('\n');
+                
+                alert(`入库数据：\n${data}`);
+            } else {
+                alert('没有数据');
+            }
+        });
+
+        // 清空数据
+        document.getElementById('clear-btn').addEventListener('click', () => {
+            const result = window.dbApi.clearData();
+            alert(result.message);
+        });
+
+        // IPC监听
+        window.dbApi = window.dbApi || {};
+        
+        // 模拟IPC
+        window.dbApi.insertQR = (qrData) => {
+            return { success: true, goods_name: '笔记本电脑', quantity: 5 };
+        };
+        
+        window.dbApi.checkEmpty = () => {
+            return { success: true, count: 2, data: [
+                { id: 1, goods_name: '笔记本电脑', quantity: 5 },
+                { id: 2, goods_name: '鼠标', quantity: 100 }
+            ]};
+        };
+        
+        window.dbApi.updateLocation = (goodsId, location) => {
+            return { success: true, message: '更新成功' };
+        };
+        
+        window.dbApi.queryData = () => {
+            return { success: true, data: [
+                { id: 1, goods_name: '笔记本电脑', quantity: 5, storage_location: '仓库A-货架1' },
+                { id: 2, goods_name: '鼠标', quantity: 100, storage_location: null },
+                { id: 3, goods_name: '键盘', quantity: 50, storage_location: '仓库C-货架5' }
+            ]};
+        };
+        
+        window.dbApi.clearData = () => {
+            return { success: true, message: '数据已清空' };
+        };
+        
+        window.dbApi.simulateVoice = () => {
+            return '仓库A-货架1';
+        };
+
+        // 定时检查空位置
+        setTimeout(() => {
+            const result = window.dbApi.checkEmpty();
+            
+            if (result.success && result.count > 0) {
+                const message = `新到的${result.data.map(g => g.goods_name).join(', ')}还没放好~`;
+                
+                const reminderBubble = document.getElementById('reminder-bubble');
+                const reminderContent = document.getElementById('reminder-content');
+                
+                reminderContent.textContent = message;
+                reminderBubble.style.display = 'block';
+                
+                pet.classList.add('shake-animation');
+                setTimeout(() => {
+                    pet.classList.remove('shake-animation');
+                }, 500);
+            }
+        }, 10000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>桌面宠物 - 简化版本</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            text-align: center;
+            color: #fff;
+        }
+        
+        h2 {
+            font-size: 20px;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            color: #fff;
+        }
+        
+        h3 {
+            font-size: 18px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+        
+        .section {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ff6b6b;
+        }
+        
+        .button {
+            display: inline-block;
+            background: #ff6b6b;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 10px;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .button:hover {
+            background: #ff5252;
+            transform: translateY(-2px);
+        }
+        
+        code {
+            background: rgba(0,0,0,0.3);
+            padding: 5px 10px;
+            border-radius: 4px;
+            display: block;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            color: #ffd700;
+        }
+        
+        .instructions {
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        
+        .step {
+            margin-bottom: 15px;
+            padding-left: 15px;
+        }
+        
+        .step-number {
+            background: #ff6b6b;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 50%;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        
+        .download-link {
+            text-align: center;
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 10px;
+        }
+        
+        .download-link a {
+            color: #ffd700;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .download-link a:hover {
+            color: #ff6b6b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>桌面宠物 - 简化版安装指南</h1>
+        
+        <div class="section">
+            <h2>📥 最快安装方法</h2>
+            
+            <div class="download-link">
+                <h3>下载 ZIP 包：</h3>
+                <p>
+                    <a href="https://github.com/blackbug23/AI-Research-Assistant/archive/refs/heads/master.zip">
+                        🔽 点击下载完整项目
+                    </a>
+                </p>
+                <p>下载后解压缩，无需任何安装步骤</p>
+            </div>
+            
+            <div class="instructions">
+                <h3>简单步骤：</h3>
+                <div class="step">
+                    <span class="step-number">1</span>
+                    下载 ZIP 文件
+                </div>
+                <div class="step">
+                    <span class="step-number">2</span>
+                    解压缩到任意文件夹
+                </div>
+                <div class="step">
+                    <span class="step-number">3</span>
+                    打开 `desktop-pet` 文件夹
+                </div>
+                <div class="step">
+                    <span class="step-number">4</span>
+                    双击 `simple_main.js` 或 `index.html`
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>❌ 如果 npm install 失败</h2>
+            
+            <h3>解决方案1：跳过 electron</h3>
+            <code>npm install --no-optional</code>
+            
+            <h3>解决方案2：使用淘宝镜像</h3>
+            <code>npm config set registry https://registry.npmmirror.com/</code>
+            <code>npm install</code>
+            
+            <h3>解决方案3：使用预构建包</h3>
+            <code>npm install electron --prefer-offline</code>
+        </div>
+        
+        <div class="section">
+            <h2>⚠️ Windows 常见错误</h2>
+            
+            <h3>错误：electron 无法安装</h3>
+            <p>解决方法：先安装 Windows 构建工具</p>
+            <code>npm install --global windows-build-tools</code>
+            <code>npm install electron</code>
+            
+            <h3>错误：Python 缺失</h3>
+            <p>解决方法：</p>
+            <code>npm config set python python2.7</code>
+            
+            <h3>错误：Visual Studio 工具缺失</h3>
+            <code>npm config set msvs_version 2015</code>
+        </div>
+        
+        <div class="section">
+            <h2>📞 技术支持</h2>
+            
+            <p>如果以上方法都失败，请报告具体的错误信息。</p>
+            <p>我可以根据你的具体错误提供更精确的解决方案。</p>
+            
+            <div style="text-align: center;">
+                <button class="button" onclick="alert('请告诉我具体的错误信息，我帮你解决！')">报告错误</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

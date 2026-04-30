@@ -1,348 +1,525 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>桌面宠物</title>
+    <title>桌面宠物 - QR码扫描入库系统</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
         body {
+            margin: 0;
+            overflow: hidden;
             background: transparent;
-            overflow: hidden;
+            font-family: 'Arial', sans-serif;
         }
-        
-        #app {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-        }
-        
+
         #pet-container {
-            position: absolute;
-            top: 100px;
-            left: 100px;
-            width: 150px;
-            height: 150px;
+            position: fixed;
+            top: 50px;
+            right: 50px;
+            width: 200px;
+            height: 200px;
             cursor: pointer;
-            transition: transform 0.3s ease;
+            transition: transform 0.3s;
+            z-index: 9999;
         }
-        
+
         #pet {
-            width: 100%;
-            height: 100%;
-            background-color: #f0f0f0;
-            border-radius: 75px;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-            transition: all 0.3s ease;
-        }
-        
-        #pet:hover {
-            transform: scale(1.1);
-        }
-        
-        #pet:active {
-            transform: scale(0.95);
-        }
-        
-        #pet-face {
-            position: absolute;
-            top: 35%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 60px;
-            height: 40px;
-        }
-        
-        .eye {
-            position: absolute;
-            width: 12px;
-            height: 12px;
-            background-color: #333;
+            width: 200px;
+            height: 200px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 3px solid white;
             border-radius: 50%;
-            animation: blink 3s infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
         }
-        
+
+        .pet-face {
+            width: 100px;
+            height: 100px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            position: absolute;
+            top: 50px;
+            left: 50px;
+        }
+
+        .eye {
+            width: 20px;
+            height:20px;
+            background-color: black;
+            border-radius: 50%;
+            position: absolute;
+        }
+
         .eye-left {
-            left: 15px;
-            top: 10px;
+            top: 35px;
+            left: 30px;
         }
-        
+
         .eye-right {
-            right: 15px;
-            top: 10px;
+            top: 35px;
+            right: 30px;
         }
-        
+
         .mouth {
-            position: absolute;
-            bottom: 15px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 30px;
+            width: 40px;
             height: 10px;
-            background-color: #333;
-            border-radius: 5px;
-        }
-        
-        #bubble {
+            background-color: black;
+            border-radius: 10px;
             position: absolute;
-            top: -40px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 120px;
-            padding: 10px;
-            background-color: white;
-            border-radius: 20px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-            opacity: 0;
-            transition: opacity 0.5s ease;
-            text-align: center;
-            font-family: Arial, sans-serif;
+            top: 70px;
+            left: 30px;
+        }
+
+        .ear {
+            width: 30px;
+            height: 40px;
+            background-color: rgba(255, 255, 255, 0.8);
+            position: absolute;
+            top: -20px;
+        }
+
+        .ear-left {
+            left: 20px;
+            transform: rotate(-20deg);
+        }
+
+        .ear-right {
+            right: 20px;
+            transform: rotate(20deg);
+        }
+
+        .reminder-bubble {
+            position: absolute;
+            bottom: 220px;
+            left: 0;
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 2px solid #ff6b6b;
+            border-radius: 15px;
+            padding: 15px;
+            width: 300px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            animation: bubble-appear 0.5s ease-out;
+            z-index: 10000;
+        }
+
+        .reminder-title {
+            color: #ff6b6b;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .reminder-content {
+            margin-bottom: 15px;
+        }
+
+        .reminder-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .reminder-btn {
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
             font-size: 14px;
         }
-        
-        .bubble-show {
-            opacity: 1 !important;
+
+        .reminder-btn:hover {
+            background-color: #45a049;
         }
-        
-        #database-viewer {
+
+        .shake-animation {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+
+        @keyframes bubble-appear {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        #control-panel {
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 400px;
-            height: 300px;
-            background-color: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            padding: 20px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: 1000;
-        }
-        
-        .viewer-show {
-            opacity: 1 !important;
-        }
-        
-        #db-content {
-            height: 200px;
-            overflow-y: auto;
-            margin-top: 20px;
-            padding: 10px;
-            background-color: #f8f8f8;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(255, 255, 255, 0.9);
             border-radius: 10px;
+            padding: 20px;
+            width: 400px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            z-index: 9999;
         }
-        
-        #close-viewer {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 30px;
-            height: 30px;
-            background-color: #333;
+
+        .panel-section {
+            margin-bottom: 15px;
+        }
+
+        .panel-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .panel-button {
+            padding: 8px 15px;
+            background-color: #2196F3;
             color: white;
-            border-radius: 15px;
-            text-align: center;
-            line-height: 30px;
+            border: none;
+            border-radius: 5px;
             cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
         }
-        
-        @keyframes blink {
-            0%, 90%, 100% {
-                height: 12px;
-            }
-            95% {
-                height: 2px;
-            }
+
+        .panel-button:hover {
+            background-color: #1976D2;
         }
-        
-        @keyframes idle {
-            0%, 100% {
-                transform: translateY(0);
-            }
-            50% {
-                transform: translateY(-5px);
-            }
+
+        .qr-input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
         }
-        
-        #pet {
-            animation: idle 4s infinite ease-in-out;
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .data-table th, .data-table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .data-table th {
+            background-color: #f2f2f2;
         }
     </style>
 </head>
 <body>
-    <div id="app">
-        <div id="pet-container">
-            <div id="pet" onclick="handleDoubleClick()">
-                <div id="pet-face">
-                    <div class="eye eye-left"></div>
-                    <div class="eye eye-right"></div>
-                    <div class="mouth"></div>
-                </div>
+    <!-- 桌宠容器 -->
+    <div id="pet-container">
+        <div id="pet">
+            <div class="pet-face">
+                <div class="eye eye-left"></div>
+                <div class="eye eye-right"></div>
+                <div class="mouth"></div>
             </div>
-            <div id="bubble">嘿！双击腹部查看数据库</div>
-        </div>
-        
-        <div id="database-viewer">
-            <h3>数据库查看器</h3>
-            <button onclick="insertData()">插入示例数据</button>
-            <button onclick="queryData()">查询数据</button>
-            <button onclick="clearData()">清空数据</button>
-            <div id="db-content"></div>
-            <div id="close-viewer" onclick="closeViewer()">×</div>
+            <div class="ear ear-left"></div>
+            <div class="ear ear-right"></div>
         </div>
     </div>
-    
+
+    <!-- 提醒气泡 -->
+    <div id="reminder-bubble" class="reminder-bubble" style="display: none;">
+        <div class="reminder-title">📢 位置提醒</div>
+        <div id="reminder-content" class="reminder-content"></div>
+        <div class="reminder-buttons">
+            <button id="record-location-btn" class="reminder-btn">记录位置</button>
+            <button id="ignore-btn" class="reminder-btn">忽略</button>
+        </div>
+    </div>
+
+    <!-- 控制面板 -->
+    <div id="control-panel">
+        <div class="panel-section">
+            <div class="panel-title">QR码扫描入库</div>
+            <input id="qr-input" type="text" class="qr-input" placeholder="QR码内容或扫描结果">
+            <button id="scan-btn" class="panel-button">模拟扫描</button>
+            <button id="insert-btn" class="panel-button">入库</button>
+            <div id="scan-result"></div>
+        </div>
+
+        <div class="panel-section">
+            <div class="panel-title">数据库管理</div>
+            <button id="init-db-btn" class="panel-button">初始化数据库</button>
+            <button id="clear-db-btn" class="panel-button">清空数据库</button>
+            <button id="check-empty-btn" class="panel-button">检查空位置</button>
+        </div>
+
+        <div class="panel-section">
+            <div class="panel-title">入库数据 (goods_in)</div>
+            <div id="goods-in-data"></div>
+        </div>
+
+        <div class="panel-section">
+            <div class="panel-title">库存数据 (inventory)</div>
+            <div id="inventory-data"></div>
+        </div>
+    </div>
+
+    <!-- 语音录入面板 -->
+    <div id="voice-panel" style="position: fixed; bottom: 20px; left: 20px; background-color: rgba(255,255,255,0.9); padding: 20px; border-radius: 10px; width: 300px; display: none;">
+        <div class="panel-title">语音录入位置</div>
+        <input id="location-input" type="text" class="qr-input" placeholder="输入或语音录入位置">
+        <button id="simulate-voice-btn" class="panel-button">模拟语音输入</button>
+        <button id="submit-location-btn" class="panel-button">更新位置</button>
+        <button id="close-voice-btn" class="panel-button">关闭</button>
+    </div>
+
     <script>
-        let clickCount = 0;
-        let lastClickTime = 0;
+        // 拖拽桌宠
         let isDragging = false;
-        let startX, startY, petX, petY;
-        
+        let startX, startY;
+
         const petContainer = document.getElementById('pet-container');
-        const bubble = document.getElementById('bubble');
-        const databaseViewer = document.getElementById('database-viewer');
-        const dbContent = document.getElementById('db-content');
-        
-        // 拖拽功能
         petContainer.addEventListener('mousedown', (e) => {
-            if (e.target.id === 'pet-container' || e.target.id === 'pet') {
-                isDragging = true;
-                startX = e.clientX;
-                startY = e.clientY;
-                petX = petContainer.offsetLeft;
-                petY = petContainer.offsetTop;
-                
-                // 显示气泡
-                bubble.classList.add('bubble-show');
-                
-                // 移除待机动画
-                document.getElementById('pet').style.animation = 'none';
-            }
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
         });
-        
+
         document.addEventListener('mousemove', (e) => {
             if (isDragging) {
                 const deltaX = e.clientX - startX;
                 const deltaY = e.clientY - startY;
                 
-                petContainer.style.left = `${petX + deltaX}px`;
-                petContainer.style.top = `${petY + deltaY}px`;
+                petContainer.style.top = (parseInt(petContainer.style.top) || 50) + deltaY + 'px';
+                petContainer.style.left = (parseInt(petContainer.style.left) || 50) + deltaX + 'px';
+                
+                startX = e.clientX;
+                startY = e.clientY;
             }
         });
-        
+
         document.addEventListener('mouseup', () => {
-            if (isDragging) {
-                isDragging = false;
+            isDragging = false;
+        });
+
+        // 点击桌宠
+        const pet = document.getElementById('pet');
+        pet.addEventListener('click', () => {
+            pet.classList.add('shake-animation');
+            setTimeout(() => {
+                pet.classList.remove('shake-animation');
+            }, 500);
+        });
+
+        // API调用
+        function initDatabase() {
+            const result = window.api.initDatabase();
+            console.log('数据库初始化:', result);
+            showResult(result.message || '数据库初始化成功');
+        }
+
+        function scanQRCode() {
+            const qrInput = document.getElementById('qr-input').value;
+            if (qrInput.trim()) {
+                insertFromQRCode(qrInput);
+            } else {
+                window.api.simulateQRScan().then(result => {
+                    document.getElementById('qr-input').value = result.qrcode_data;
+                    insertFromQRCode(result.qrcode_data);
+                });
+            }
+        }
+
+        function insertFromQRCode(qrData) {
+            const result = window.api.insertFromQRCode(qrData);
+            if (result.success) {
+                showResult(`入库成功：${result.goods_name}, 数量：${result.quantity}`);
+                refreshData();
+            } else {
+                showResult(`入库失败：${result.error}`);
+            }
+        }
+
+        function checkEmptyLocationRecords() {
+            const result = window.api.getEmptyLocationRecords();
+            if (result.success && result.count > 0) {
+                const message = `有 ${result.count} 个商品没有录入位置：`;
+                const goodsList = result.data.map(g => `${g.goods_name} (${g.quantity})`).join(', ');
+                showReminder(message + goodsList);
                 
-                // 恢复待机动画
-                document.getElementById('pet').style.animation = 'idle 4s infinite ease-in-out';
-                
-                // 隐藏气泡
-                bubble.classList.remove('bubble-show');
+                // 触发桌宠动画
+                pet.classList.add('shake-animation');
+                setTimeout(() => {
+                    pet.classList.remove('shake-animation');
+                }, 500);
+            } else {
+                showResult('没有未录入位置的商品');
+            }
+        }
+
+        function showReminder(message) {
+            const reminderBubble = document.getElementById('reminder-bubble');
+            const reminderContent = document.getElementById('reminder-content');
+            
+            reminderContent.textContent = message;
+            reminderBubble.style.display = 'block';
+        }
+
+        function clearDatabase() {
+            const result = window.api.clearDatabase();
+            showResult(result.message || '数据库已清空');
+            refreshData();
+        }
+
+        function refreshData() {
+            window.api.queryGoodsInData().then(result => {
+                if (result.success) {
+                    displayGoodsInData(result.data);
+                }
+            });
+            
+            window.api.queryInventoryData().then(result => {
+                if (result.success) {
+                    displayInventoryData(result.data);
+                }
+            });
+        }
+
+        function displayGoodsInData(data) {
+            const container = document.getElementById('goods-in-data');
+            container.innerHTML = '';
+            
+            if (data.length === 0) {
+                container.textContent = '没有入库数据';
+                return;
+            }
+            
+            const table = document.createElement('table');
+            table.className = 'data-table';
+            
+            const header = table.createTHead();
+            const headerRow = header.insertRow();
+            headerRow.innerHTML = '<th>ID</th><th>商品名称</th><th>数量</th><th>供应商</th><th>位置</th>';
+            
+            const body = table.createTBody();
+            data.forEach(item => {
+                const row = body.insertRow();
+                row.innerHTML = `
+                    <td>${item.id}</td>
+                    <td>${item.goods_name}</td>
+                    <td>${item.quantity}</240>
+                    <td>${item.supplier || 'N/A'}</td>
+                    <td>${item.storage_location || '<span style="color:red">未录入</span>'}</td>
+                `;
+            });
+            
+            container.appendChild(table);
+        }
+
+        function displayInventoryData(data) {
+            const container = document.getElementById('inventory-data');
+            container.innerHTML = '';
+            
+            if (data.length === 0) {
+                container.textContent = '没有库存数据';
+                return;
+            }
+            
+            const table = document.createElement('table');
+            table.className = 'data-table';
+            
+            const header = table.createTHead();
+            const headerRow = header.insertRow();
+            headerRow.innerHTML = '<th>ID</th><th>商品名称</th><th>库存量</th><th>位置</th>';
+            
+            const body = table.createTBody();
+            data.forEach(item => {
+                const row = body.insertRow();
+                row.innerHTML = `
+                    <td>${item.id}</td>
+                    <td>${item.goods_name}</td>
+                    <td>${item.current_quantity}</td>
+                    <td>${item.location || '<span style="color:red">未录入</span>'}</td>
+                `;
+            });
+            
+            container.appendChild(table);
+        }
+
+        function showResult(message) {
+            const scanResult = document.getElementById('scan-result');
+            scanResult.textContent = message;
+            scanResult.style.color = 'green';
+        }
+
+        // 语音录入
+        const voicePanel = document.getElementById('voice-panel');
+        const recordLocationBtn = document.getElementById('record-location-btn');
+        recordLocationBtn.addEventListener('click', () => {
+            voicePanel.style.display = 'block';
+        });
+
+        const simulateVoiceBtn = document.getElementById('simulate-voice-btn');
+        simulateVoiceBtn.addEventListener('click', () => {
+            window.api.getVoiceLocationInput().then(result => {
+                document.getElementById('location-input').value = result.location;
+            });
+        });
+
+        const submitLocationBtn = document.getElementById('submit-location-btn');
+        submitLocationBtn.addEventListener('click', () => {
+            const goodsId = prompt('请输入商品ID：');
+            const location = document.getElementById('location-input').value;
+            
+            if (goodsId && location) {
+                window.api.updateStorageLocation(goodsId, location).then(result => {
+                    if (result.success) {
+                        showResult(result.message);
+                        refreshData();
+                    }
+                });
             }
         });
-        
-        // 双击检测
-        function handleDoubleClick() {
-            const currentTime = new Date().getTime();
-            if (currentTime - lastClickTime < 300) { // 双击间隔小于300ms
-                clickCount++;
-                if (clickCount === 2) {
-                    openDatabaseViewer();
-                    clickCount = 0;
-                }
-            } else {
-                clickCount = 1;
+
+        const closeVoiceBtn = document.getElementById('close-voice-btn');
+        closeVoiceBtn.addEventListener('click', () => {
+            voicePanel.style.display = 'none';
+        });
+
+        const ignoreBtn = document.getElementById('ignore-btn');
+        ignoreBtn.addEventListener('click', () => {
+            document.getElementById('reminder-bubble').style.display = 'none';
+        });
+
+        // 按钮事件绑定
+        document.getElementById('scan-btn').addEventListener('click', scanQRCode);
+        document.getElementById('insert-btn').addEventListener('click', () => {
+            const qrData = document.getElementById('qr-input').value;
+            if (qrData.trim()) {
+                insertFromQRCode(qrData);
             }
-            lastClickTime = currentTime;
-        }
+        });
+        document.getElementById('init-db-btn').addEventListener('click', initDatabase);
+        document.getElementById('clear-db-btn').addEventListener('click', clearDatabase);
+        document.getElementById('check-empty-btn').addEventListener('click', checkEmptyLocationRecords);
+
+        // 初始化数据
+        initDatabase();
+        refreshData();
         
-        // 打开数据库查看器
-        function openDatabaseViewer() {
-            databaseViewer.classList.add('viewer-show');
-        }
+        // 启动提醒定时器
+        window.api.startReminderTimer();
         
-        // 关闭数据库查看器
-        function closeViewer() {
-            databaseViewer.classList.remove('viewer-show');
-        }
-        
-        // 数据库操作函数
-        function insertData() {
-            const result = window.mockDatabase.insertGoodsData();
-            if (result.success) {
-                bubble.classList.add('bubble-show');
-                bubble.innerHTML = '插入成功，添加了'+ result.count + '条数据';
-                setTimeout(() => bubble.classList.remove('bubble-show'), 3000);
-                setTimeout(() => queryData(), 500);
-            } else {
-                bubble.classList.add('bubble-show');
-                bubble.innerHTML = '插入失败: ' + result.message;
-                setTimeout(() => bubble.classList.remove('bubble-show'), 3000);
+        // IPC监听
+        window.electron = window.electron || {};
+        window.electron.ipcRenderer = {
+            sendSync: (channel, ...args) => {
+                return window.api[channel](...args);
             }
-        }
-        
-        function queryData() {
-            const result = window.mockDatabase.queryInventoryData();
-            if (result.success && result.data.length > 0) {
-                dbContent.innerHTML = '<h4>库存数据</h4>';
-                dbContent.innerHTML += '<table style="width: 100%;"><thead><tr><th>ID</th><th>商品名称</th><th>数量</th><th>位置</th><th>更新时间</th></tr></thead><tbody>';
-                result.data.forEach(item => {
-                    dbContent.innerHTML += `<tr>
-                        <td>${item.id}</td>
-                        <td>${item.goods_name}</td>
-                        <td>${item.current_quantity}</td>
-                        <td>${item.location}</td>
-                        <td>${item.last_update}</td>
-                    </tr>`;
-                });
-                dbContent.innerHTML += '</tbody></table>';
-                bubble.classList.add('bubble-show');
-                bubble.innerHTML = '查询成功，共'+ result.data.length + '条数据';
-                setTimeout(() => bubble.classList.remove('bubble-show'), 3000);
-            } else if (result.success && result.data.length === 0) {
-                dbContent.innerHTML = '<p>库存数据为空</p>';
-            } else {
-                dbContent.innerHTML = '<p>查询失败: ' + result.message + '</p>';
-            }
-        }
-        
-        function clearData() {
-            const result = window.mockDatabase.clearDatabase();
-            if (result.success) {
-                dbContent.innerHTML = '<p>数据库已清空</p>';
-                bubble.classList.add('bubble-show');
-                bubble.innerHTML = '数据库已清空';
-                setTimeout(() => bubble.classList.remove('bubble-show'), 3000);
-            } else {
-                bubble.classList.add('bubble-show');
-                bubble.innerHTML = '清空失败: ' + result.message;
-                setTimeout(() => bubble.classList.remove('bubble-show'), 3000);
-            }
-        }
-        
-        // 初始化数据库
-        const initResult = window.mockDatabase.initDatabase();
-        if (initResult.success) {
-            bubble.classList.add('bubble-show');
-            bubble.innerHTML = '数据库初始化完成';
-            setTimeout(() => bubble.classList.remove('bubble-show'), 2000);
-        } else {
-            bubble.classList.add('bubble-show');
-            bubble.innerHTML = '数据库初始化失败: ' + initResult.message;
-            setTimeout(() => bubble.classList.remove('bubble-show'), 3000);
-        }
-        
-        // 初始化显示一些信息
-        dbContent.innerHTML = '<p>点击按钮操作数据库...</p>';
+        };
     </script>
 </body>
 </html>

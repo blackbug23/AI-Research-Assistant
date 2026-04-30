@@ -53,26 +53,43 @@
 
 ## 如何使用
 
-1. 安装依赖：
+### Windows 版本
+
+1. **安装依赖**（需要 Node.js）：
    ```bash
    npm install
    ```
 
-2. 启动应用：
+2. **启动应用**：
    ```bash
    npm start
    ```
 
-3. 使用应用：
+3. **使用应用**：
    - 桌宠会出现在桌面右上角
    - 可以拖拽桌宠移动
    - 双击桌宠腹部打开数据库查看器
    - 在查看器中可以操作数据库
 
-4. 打包应用：
+4. **打包 Windows 应用**：
    ```bash
-   npm run build
+   npm run build:win
    ```
+   
+### Windows 直接安装
+
+1. **下载预编译版本**：
+   - 从 GitHub Releases 下载 `desktop-pet-win-x64.exe`
+   - 双击安装程序运行
+
+2. **Windows 特有功能**：
+   - 任务栏托盘图标
+   - 开机自启动（可选）
+   - Windows 通知支持
+
+### 详细 Windows 安装指南
+
+请查看 [WINDOWS_INSTALL.md](./WINDOWS_INSTALL.md)
 
 ## 项目结构
 

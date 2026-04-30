@@ -6,6 +6,8 @@
   "scripts": {
     "start": "electron .",
     "build": "electron-packager . desktop-pet --platform=linux --arch=x64 --out=dist",
+    "build:win": "electron-builder --win",
+    "windows-build": "node build-windows.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -19,5 +21,41 @@
   "type": "commonjs",
   "dependencies": {
     "electron": "^29.0.0"
+  },
+  "devDependencies": {
+    "electron-builder": "^24.6.4"
+  },
+  "build": {
+    "appId": "com.blackbug23.desktop-pet",
+    "productName": "桌面宠物",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "app.js",
+      "main.js",
+      "simple_main.js",
+      "preload.js",
+      "index.html",
+      "package.json",
+      "assets/**/*",
+      "README.md",
+      "WINDOWS_INSTALL.md"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   }
 }

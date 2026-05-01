@@ -6,28 +6,12 @@ const path = require('path');
 console.log('准备打包桌面宠物应用...');
 
 // 检查必要的依赖
-const requiredDependencies = ['electron-builder'];
-
 function checkDependencies() {
   console.log('检查依赖...');
   
-  // 安装 electron-builder 如果不存在
-  exec('npm list electron-builder', (error, stdout, stderr) => {
-    if (error || stdout.includes('empty')) {
-      console.log('正在安装 electron-builder...');
-      exec('npm install electron-builder --save-dev', (error, stdout, stderr) => {
-        if (error) {
-          console.error('安装 electron-builder 失败:', error);
-          return;
-        }
-        console.log('electron-builder 安装成功');
-        createPackageConfig();
-      });
-    } else {
-      console.log('electron-builder 已安装');
-      createPackageConfig();
-    }
-  });
+  // electron-builder已安装
+  console.log('electron-builder 已安装');
+  createPackageConfig();
 }
 
 function createPackageConfig() {
@@ -45,15 +29,19 @@ function createPackageConfig() {
       "output": "dist"
     },
     "files": [
-      "app.js",
       "main.js",
-      "simple_main.js",
-      "preload.js",
       "index.html",
+      "guide.html",
+      "scanner.html",
+      "settings.html",
+      "src/**/*",
+      "__tests__/**/*",
       "package.json",
       "assets/**/*",
       "README.md",
-      "WINDOWS_INSTALL.md"
+      "WINDOWS_INSTALL.md",
+      "templates/**/*",
+      "database/**/*"
     ],
     "win": {
       "target": [
@@ -130,6 +118,7 @@ function createPackageConfig() {
 - 首次 Windows 版本发布
 - 支持 Windows 10/11
 - 数据库功能完整
+- UI打磨与端到端体验优化已完成
 
 ## 注意事项
 - 应用需要 SQLite 数据库，首次启动会自动创建

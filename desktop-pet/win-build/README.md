@@ -36,8 +36,6 @@ npm start
 npm start
 ```
 
-或解压 `desktop-pet-win.tar.gz`，运行 `start.bat`
-
 ### 快速启动
 ```bash
 ./start.sh
@@ -48,18 +46,11 @@ npm start
 npm run windows-build
 ```
 
-### 简化打包脚本
-```bash
-./simple-win-build.sh
-```
-
-生成桌面宠物 Windows 压缩包：`desktop-pet-win.tar.gz`
-
 ### Windows 特有功能
 - **无边框透明窗口** - 桌宠窗口设计
 - **系统托盘图标** - 托盘菜单管理
 - **开机自启动** - 可配置开机启动
-- **Windows打包** - 包含完整应用和安装说明
+- **Windows安装包** - NSIS安装器
 
 ## 配置文件
 

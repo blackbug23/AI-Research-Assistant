@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>实验记录向导</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .step-container {
+            margin-bottom: 30px;
+        }
+
+        .step-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2196F3;
+        }
+
+        .step-progress {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .step-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #ddd;
+            margin-right: 10px;
+            transition: background-color 0.3s;
+        }
+
+        .step-dot.active {
+            background-color: #2196F3;
+        }
+
+        .step-line {
+            width: 100px;
+            height: 2px;
+            background-color: #ddd;
+            margin-right: 10px;
+        }
+
+        .step-line.active {
+            background-color: #2196F3;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .form-input:focus {
+            border-color: #2196F3;
+            outline: none;
+        }
+
+        .form-input.error {
+            border-color: #F44336;
+        }
+
+        .error-message {
+            color: #F44336;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .button-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .btn-primary {
+            background-color: #2196F3;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #1976D2;
+        }
+
+        .btn-secondary {
+            background-color: #FF9800;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #F57C00;
+        }
+
+        .btn-danger {
+            background-color: #F44336;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #D32F2F;
+        }
+
+        .btn.disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .goods-list {
+            margin-top: 15px;
+        }
+
+        .goods-item {
+            background-color: #f8f9fa;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .goods-name {
+            font-weight: bold;
+        }
+
+        .goods-quantity {
+            color: #666;
+        }
+
+        .goods-remove {
+            color: #F44336;
+            cursor: pointer;
+        }
+
+        .scan-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .result-preview {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        .result-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2196F3;
+        }
+
+        .result-item {
+            margin-bottom: 8px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .success {
+            text-align: center;
+            padding: 20px;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .failure {
+            text-align: center;
+            padding: 20px;
+            color: #F44336;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>实验记录向导</h1>
+        
+        <!-- 步骤进度 -->
+        <div class="step-progress">
+            <div class="step-dot active" id="step1-dot">1</div>
+            <div class="step-line" id="step1-line"></div>
+            <div class="step-dot" id="step2-dot">2</div>
+            <div class="step-line" id="step2-line"></div>
+            <div class="step-dot" id="step3-dot">3</div>
+            <div class="step-line" id="step3-line"></div>
+            <div class="step-dot" id="step4-dot">4</div>
+            <div class="step-line" id="step4-line"></div>
+            <div class="step-dot" id="step5-dot">5</div>
+        </div>
+
+        <!-- 步骤1: 实验信息 -->
+        <div class="step-container" id="step1">
+            <div class="step-title">步骤1: 实验信息</div>
+            
+            <div class="form-group">
+                <label class="form-label">实验名称</label>
+                <input type="text" class="form-input" id="experiment-name" placeholder="请输入实验名称">
+                <div class="error-message" id="name-error"></div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">实验编号</label>
+                <input type="text" class="form-input" id="experiment-code" placeholder="请输入实验编号">
+                <div class="error-message" id="code-error"></div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">实验负责人</label>
+                <input type="text" class="form-input" id="experiment-owner" placeholder="请输入负责人姓名">
+                <div class="error-message" id="owner-error"></div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">实验日期</label>
+                <input type="date" class="form-input" id="experiment-date">
+                <div class="error-message" id="date-error"></div>
+            </div>
+
+            <div class="button-container">
+                <button class="btn btn-primary" id="next-step1-btn">下一步</button>
+            </div>
+        </div>
+
+        <!-- 步骤2: 操作步骤 -->
+        <div class="step-container" id="step2" style="display: none;">
+            <div class="step-title">步骤2: 操作步骤</div>
+            
+            <div class="form-group">
+                <label class="form-label">操作模板</label>
+                <select class="form-input" id="sop-template">
+                    <option value="">选择预设模板</option>
+                    <option value="PCR实验">PCR实验</option>
+                    <option value="蛋白质纯化">蛋白质纯化</option>
+                    <option value="细胞培养">细胞培养</option>
+                    <option value="样品制备">样品制备</option>
+                    <option value="药物筛选">药物筛选</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">操作步骤详细描述</label>
+                <textarea class="form-input" id="operation-details" rows="5" placeholder="请输入操作步骤详细描述"></textarea>
+                <div class="error-message" id="details-error"></div>
+            </div>
+
+            <div class="button-container">
+                <button class="btn btn-secondary" id="prev-step2-btn">上一步</button>
+                <button class="btn btn-primary" id="next-step2-btn">下一步</button>
+            </div>
+        </div>
+
+        <!-- 步骤3: 试剂选择 -->
+        <div class="step-container" id="step3" style="display: none;">
+            <div class="step-title">步骤3: 试剂选择</div>
+            
+            <div class="scan-container">
+                <input type="text" class="form-input" id="qr-input" placeholder="输入QR码内容">
+                <button class="btn btn-secondary" id="scan-btn">扫码录入</button>
+                <button class="btn btn-secondary" id="select-btn">库存列表选择</button>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">已选试剂</label>
+                <div class="goods-list" id="goods-list">
+                    <!-- 试剂列表将在这里动态显示 -->
+                </div>
+                <div class="error-message" id="goods-error"></div>
+            </div>
+
+            <div class="button-container">
+                <button class="btn btn-secondary" id="prev-step3-btn">上一步</button>
+                <button class="btn btn-primary" id="next-step3-btn">下一步</button>
+            </grad>
+        </div>
+
+        <!-- 步骤4: 结果录入 -->
+        <div class="step-container" id="step4" style="display: none;">
+            <div class="step-title">步骤4: 结果录入</div>
+            
+            <div class="form-group">
+                <label class="form-label">实验结果</label>
+                <textarea class="form-input" id="experiment-result" rows="5" placeholder="请输入实验结果描述"></textarea>
+                <div class="error-message" id="result-error"></div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">实验结果附件</label>
+                <input type="file" class="form-input" id="result-attachment">
+                <div class="error-message" id="attachment-error"></div>
+            </div>
+
+            <div class="button-container">
+                <button class="btn btn-secondary" id="prev-step4-btn">上一步</button>
+                <button class="btn btn-primary" id="next-step4-btn">预览</button>
+            </div>
+        </div>
+
+        <!-- 步骤5: 预览确认 -->
+        <div class="step-container" id="step5" style="display: none;">
+            <div class="step-title">步骤5: 预览确认</div>
+            
+            <div class="result-preview">
+                <div class="result-title">实验记录预览</div>
+                
+                <div class="result-item">
+                    <strong>实验名称:</strong> <span id="preview-name"></span>
+                </div>
+                <div class="result-item">
+                    <strong>实验编号:</strong> <span id="preview-code"></span>
+                </div>
+                <div class="result-item">
+                    <strong>负责人:</strong> <span id="preview-owner"></span>
+                </div>
+                <div class="result-item">
+                    <strong>实验日期:</strong> <span id="preview-date"></span>
+                </div>
+                <div class="result-item">
+                    <strong>操作步骤:</strong> <span id="preview-operations"></span>
+                </div>
+                <div class="result-item">
+                    <strong>试剂列表:</strong> <span id="preview-goods"></span>
+                </div>
+                <div class="result-item">
+                    <strong>实验结果:</strong> <span id="preview-result"></span>
+                </div>
+                <div class="result-item">
+                    <strong>消耗库存:</strong> <span id="preview-consumption"></span>
+                </div>
+            </div>
+
+            <div id="loading-section" class="loading" style="display: none;">
+                正在生成PDF...
+            </div>
+
+            <div id="success-section" class="success" style="display: none;">
+                PDF生成成功！已自动打开预览
+            </div>
+
+            <div id="failure-section" class="failure" style="display: none;">
+                生成失败，请检查配置
+            </div>
+
+            <div class="button-container">
+                <button class="btn btn-secondary" id="prev-step5-btn">上一步</button>
+                <button class="btn btn-primary" id="generate-btn">生成PDF</button>
+                <button class="btn btn-danger" id="cancel-btn">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 步骤数据存储
+        let experimentData = {
+            name: '',
+            code: '',
+            owner: '',
+            date: '',
+            operations: '',
+            goods: [],
+            result: '',
+            attachment: ''
+        };
+
+        // 当前步骤
+        let currentStep = 1;
+
+        // 步骤切换
+        function showStep(stepNumber) {
+            // 隐藏所有步骤
+            document.querySelectorAll('.step-container').forEach(step => {
+                step.style.display = 'none';
+            });
+            
+            // 显示当前步骤
+            document.getElementById(`step${stepNumber}`).style.display = 'block';
+            
+            // 更新进度指示器
+            updateProgress(stepNumber);
+            
+            currentStep = stepNumber;
+        }
+
+        // 更新进度指示器
+        function updateProgress(stepNumber) {
+            for (let i = 1; i <= 5; i++) {
+                const dot = document.getElementById(`step${i}-dot`);
+                const line = document.getElementById(`step${i}-line`);
+                
+                if (i <= stepNumber) {
+                    dot.classList.add('active');
+                    if (line) line.classList.add('active');
+                } else {
+                    dot.classList.remove('active');
+                    if (line) line.classList.remove('active');
+                }
+            }
+        }
+
+        // 验证步骤1
+        function validateStep1() {
+            const name = document.getElementById('experiment-name').value;
+            const code = document.getElementById('experiment-code').value;
+            const owner = document.getElementById('experiment-owner').value;
+            const date = document.getElementById('experiment-date').value;
+            
+            let valid = true;
+            
+            if (!name.trim()) {
+                document.getElementById('name-error').textContent = '请输入实验名称';
+                valid = false;
+            } else {
+                document.getElementById('name-error').textContent = '';
+                experimentData.name = name;
+            }
+            
+            if (!code.trim()) {
+                document.getElementById('code-error').textContent = '请输入实验编号';
+                valid = false;
+            } else {
+                document.getElementById('code-error').textContent = '';
+                experimentData.code = code;
+            }
+            
+            if (!owner.trim()) {
+                document.getElementById('owner-error').textContent = '请输入负责人姓名';
+                valid = false;
+            } else {
+                document.getElementById('owner-error').textContent = '';
+                experimentData.owner = owner;
+            }
+            
+            if (!date.trim()) {
+                document.getElementById('date-error').textContent = '请输入实验日期';
+                valid = false;
+            } else {
+                document.getElementById('date-error').textContent = '';
+                experimentData.date = date;
+            }
+            
+            return valid;
+        }
+
+        // 验证步骤2
+        function validateStep2() {
+            const operations = document.getElementById('operation-details').value;
+            
+            if (!operations.trim()) {
+                document.getElementById('details-error').textContent = '请输入操作步骤描述';
+                return false;
+            } else {
+                document.getElementById('details-error').textContent = '';
+                experimentData.operations = operations;
+                return true;
+            }
+        }
+
+        // 验证步骤3
+        function validateStep3() {
+            if (experimentData.goods.length === 0) {
+                document.getElementById('goods-error').textContent = '请选择至少一种试剂';
+                return false;
+            } else {
+                document.getElementById('goods-error').textContent = '';
+                return true;
+            }
+        }
+
+        // 验证步骤4
+        function validateStep4() {
+            const result = document.getElementById('experiment-result').value;
+            
+            if (!result.trim()) {
+                document.getElementById('result-error').textContent = '请输入实验结果';
+                return false;
+            } else {
+                document.getElementById('result-error').textContent = '';
+                experimentData.result = result;
+                return true;
+            }
+        }
+
+        // 显示试剂列表
+        function updateGoodsList() {
+            const goodsList = document.getElementById('goods-list');
+            goodsList.innerHTML = '';
+            
+            experimentData.goods.forEach((goods, index) => {
+                const item = document.createElement('div');
+                item.className = 'goods-item';
+                item.innerHTML = `
+                    <span class="goods-name">${goods.name}</span>
+                    <span class="goods-quantity">数量: ${goods.quantity}</span>
+                    <span class="goods-remove" onclick="removeGoods(${index})">移除</span>
+                `;
+                goodsList.appendChild(item);
+            });
+        }
+
+        // 移除试剂
+        function removeGoods(index) {
+            experimentData.goods.splice(index, 1);
+            updateGoodsList();
+        }
+
+        // 扫码录入
+        function scanQRCode() {
+            const qrInput = document.getElementById('qr-input').value;
+            if (qrInput.trim()) {
+                // 模拟扫码结果
+                const result = {
+                    name: 'PCR试剂',
+                    quantity: 5,
+                    supplier: '供应商A'
+                };
+                experimentData.goods.push(result);
+                updateGoodsList();
+                document.getElementById('qr-input').value = '';
+            }
+        }
+
+        // 库存列表选择
+        function selectFromInventory() {
+            // 模拟库存查询
+            const inventoryData = [
+                { name: 'PCR试剂', quantity: 10 },
+                { name: '缓冲液', quantity: 20 },
+                { name: '细胞培养基', quantity: 15 },
+                { name: '抗生素', quantity: 5 }
+            ];
+            
+            const selected = inventoryData[0];
+            experimentData.goods.push({
+                name: selected.name,
+                quantity: selected.quantity,
+                supplier: '库存系统'
+            });
+            updateGoodsList();
+        }
+
+        // 预览数据
+        function previewData() {
+            document.getElementById('preview-name').textContent = experimentData.name;
+            document.getElementById('preview-code').textContent = experimentData.code;
+            document.getElementById('preview-owner').textContent = experimentData.owner;
+            document.getElementById('preview-date').textContent = experimentData.date;
+            document.getElementById('preview-operations').textContent = experimentData.operations;
+            document.getElementById('preview-goods').textContent = experimentData.goods.map(g => `${g.name} (${g.quantity})`).join(', ');
+            document.getElementById('preview-result').textContent = experimentData.result;
+            document.getElementById('preview-consumption').textContent = experimentData.goods.map(g => `${g.name}: ${g.quantity}`).join(', ');
+        }
+
+        // 生成PDF
+        function generatePDF() {
+            const loadingSection = document.getElementById('loading-section');
+            const successSection = document.getElementById('success-section');
+            const failureSection = document.getElementById('failure-section');
+            
+            loadingSection.style.display = 'block';
+            
+            // 调用后端生成PDF
+            try {
+                const result = window.electron.ipcRenderer.sendSync('generate-eln', experimentData);
+                
+                if (result.success) {
+                    loadingSection.style.display = 'none';
+                    successSection.style.display = 'block';
+                    
+                    // 触发桌宠祝贺动画
+                    window.electron.ipcRenderer.sendSync('trigger-pet-animation', experimentData.goods);
+                    
+                    setTimeout(() => {
+                        successSection.style.display = 'none';
+                        // 关闭窗口
+                        window.close();
+                    }, 2000);
+                } else {
+                    loadingSection.style.display = 'none';
+                    failureSection.style.display = 'block';
+                }
+            } catch (error) {
+                loadingSection.style.display = 'none';
+                failureSection.style.display = 'block';
+            }
+        }
+
+        // 按钮事件绑定
+        document.getElementById('next-step1-btn').addEventListener('click', () => {
+            if (validateStep1()) {
+                showStep(2);
+            }
+        });
+
+        document.getElementById('prev-step2-btn').addEventListener('click', () => {
+            showStep(1);
+        });
+
+        document.getElementById('next-step2-btn').addEventListener('click', () => {
+            if (validateStep2()) {
+                showStep(3);
+            }
+        });
+
+        document.getElementById('prev-step3-btn').addEventListener('click', () => {
+            showStep(2);
+        });
+
+        document.getElementById('next-step3-btn').addEventListener('click', () => {
+            if (validateStep3()) {
+                showStep(4);
+            }
+        });
+
+        document.getElementById('prev-step4-btn').addEventListener('click', () => {
+            showStep(3);
+        });
+
+        document.getElementById('next-step4-btn').addEventListener('click', () => {
+            if (validateStep4()) {
+                previewData();
+                showStep(5);
+            }
+        });
+
+        document.getElementById('prev-step5-btn').addEventListener('click', () => {
+            showStep(4);
+        });
+
+        document.getElementById('generate-btn').addEventListener('click', generatePDF);
+
+        document.getElementById('cancel-btn').addEventListener('click', () => {
+            window.close();
+        });
+
+        document.getElementById('scan-btn').addEventListener('click', scanQRCode);
+        document.getElementById('select-btn').addEventListener('click', selectFromInventory);
+
+        // 初始化
+        showStep(1);
+    </script>
+</body>
+</html>

@@ -1,14 +1,19 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, dialog } = require('electron');
+const fs = require('fs');
 const path = require('path');
 const dbModule = require('./database.js');
 
 let mainWindow;
 let tray;
+let guideWindow = null;
+let scannerWindow = null;
+let pdfWindow = null;
+let settingsWindow = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 400,
+    height: 400,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -17,7 +22,9 @@ function createWindow() {
     frame: false,
     transparent: true,
     alwaysOnTop: true,
-    skipTaskbar: true
+    skipTaskbar: true,
+    resizable: false,
+    movable: true
   });
 
   // 加载应用界面
@@ -108,11 +115,11 @@ function createTray() {
   tray = new Tray(icon);
   
   const contextMenu = Menu.buildFromTemplate([
-    { label: '扫描QR码', click: () => triggerQRScan() },
-    { label: '查看空位置商品', click: () => showEmptyLocationRecords() },
-    { label: '测试语音录入', click: () => testVoiceInput() },
-    { label: '打开面板', click: () => mainWindow.show() },
-    { label: '隐藏', click: () => mainWindow.hide() },
+    { label: '显示/隐藏宠物', click: togglePetVisibility },
+    { label: '扫码入库', click: () => openScanner() },
+    { label: '生成实验记录', click: () => openGuide() },
+    { label: '设置', click: () => openSettings() },
+    { label: '查看输出文件', click: () => openOutputFolder() },
     { label: '退出', click: () => app.quit() }
   ]);
   
@@ -121,10 +128,76 @@ function createTray() {
 }
 
 // 触发QR码扫描
-function triggerQRScan() {
+function togglePetVisibility() {
   if (mainWindow) {
-    mainWindow.webContents.send('scan-qrcode');
+    if (mainWindow.isVisible()) {
+      mainWindow.hide();
+    } else {
+      mainWindow.show();
+    }
   }
+}
+
+function openScanner() {
+  if (scannerWindow) {
+    scannerWindow.close();
+  }
+  scannerWindow = new BrowserWindow({
+    width: 600,
+    height: 400,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false
+    },
+    title: '扫码入库',
+    frame: true,
+    resizable: false
+  });
+  scannerWindow.loadFile('scanner.html');
+}
+
+function openGuide() {
+  if (guideWindow) {
+    guideWindow.close();
+  }
+  guideWindow = new BrowserWindow({
+    width: 800,
+    height: 600,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false
+    },
+    title: '实验记录向导',
+    frame: true,
+    resizable: false
+  });
+  guideWindow.loadFile('guide.html');
+}
+
+function openSettings() {
+  if (settingsWindow) {
+    settingsWindow.close();
+  }
+  settingsWindow = new BrowserWindow({
+    width: 400,
+    height: 300,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false
+    },
+    title: '设置',
+    frame: true,
+    resizable: false
+  });
+  settingsWindow.loadFile('settings.html');
+}
+
+function openOutputFolder() {
+  const outputPath = path.join(__dirname, 'output');
+  if (!fs.existsSync(outputPath)) {
+    fs.mkdirSync(outputPath);
+  }
+  require('electron').shell.openPath(outputPath);
 }
 
 // 查看空位置商品
@@ -149,6 +222,100 @@ function setupIPC() {
   ipcMain.on('init-database', (event) => {
     const result = dbModule.initDatabase();
     event.returnValue = result;
+  });
+  
+  ipcMain.on('trigger-pet-animation', (event, goodsList) => {
+    const message = goodsList.map(g => `${g.goods_name} (${g.quantity})`).join(', ');
+    console.log('触发桌宠动画和气泡提醒:', message);
+    
+    // 触发UI动画
+    if (mainWindow) {
+      mainWindow.webContents.send('trigger-animation', goodsList);
+    }
+    
+    event.returnValue = { success: true, message };
+  });
+  
+  ipcMain.on('show-reminder-dialog', (event, message) => {
+    console.log('显示提醒对话框:', message);
+    
+    if (mainWindow) {
+      mainWindow.webContents.send('show-dialog', message);
+    }
+    
+    event.returnValue = { success: true };
+  });
+  
+  ipcMain.on('generate-eln', (event, data) => {
+    console.log('生成实验记录:', data);
+    const elnModule = require('./src/eln_generation.js');
+    const result = elnModule.generateELN(data);
+    
+    // 打开PDF预览
+    if (result.success && result.pdfPath) {
+      require('electron').shell.openPath(result.pdfPath);
+      
+      // 触发宠物祝贺动画
+      if (mainWindow) {
+        mainWindow.webContents.send('congratulations-animation');
+      }
+    }
+    
+    event.returnValue = result;
+  });
+  
+  ipcMain.on('open-pdf-preview', (event, pdfPath) => {
+    require('electron').shell.openPath(pdfPath);
+    event.returnValue = { success: true };
+  });
+  
+  ipcMain.on('get-eln-template', (event) => {
+    const templatePath = path.join(__dirname, 'templates', 'eln_template.json');
+    try {
+      const template = JSON.parse(fs.readFileSync(templatePath, 'utf-8'));
+      event.returnValue = template;
+    } catch (err) {
+      event.returnValue = null;
+    }
+  });
+  
+  ipcMain.on('save-settings', (event, settings) => {
+    const envPath = path.join(__dirname, '.env');
+    const envContent = fs.readFileSync(envPath, 'utf-8');
+    const lines = envContent.split('\n');
+    
+    for (const [key, value] of Object.entries(settings)) {
+      const lineIndex = lines.findIndex(line => line.startsWith(key + '='));
+      if (lineIndex !== -1) {
+        lines[lineIndex] = `${key}=${value}`;
+      } else {
+        lines.push(`${key}=${value}`);
+      }
+    }
+    
+    fs.writeFileSync(envPath, lines.join('\n'), 'utf-8');
+    event.returnValue = { success: true };
+  });
+  
+  ipcMain.on('load-settings', (event) => {
+    const envPath = path.join(__dirname, '.env');
+    if (!fs.existsSync(envPath)) {
+      event.returnValue = {};
+      return;
+    }
+    
+    const envContent = fs.readFileSync(envPath, 'utf-8');
+    const settings = {};
+    envContent.split('\n').forEach(line => {
+      if (line.trim() && !line.startsWith('#')) {
+        const [key, value] = line.split('=');
+        if (key && value) {
+          settings[key.trim()] = value.trim();
+        }
+      }
+    });
+    
+    event.returnValue = settings;
   });
 
   ipcMain.on('insert-from-qrcode', (event, qrData) => {
@@ -234,6 +401,20 @@ function setupIPC() {
 
 // 启动提醒定时器
 function startTimer() {
+  // 检查是否已创建.env文件
+  try {
+    const envPath = path.join(__dirname, '.env');
+    if (!fs.existsSync(envPath)) {
+      const examplePath = path.join(__dirname, '.env.example');
+      if (fs.existsSync(examplePath)) {
+        fs.copyFileSync(examplePath, envPath);
+        console.log('已创建.env文件，请配置相关参数');
+      }
+    }
+  } catch (err) {
+    console.log('检查.env文件失败:', err.message);
+  }
+
   // 每5分钟检查一次空位置记录
   setInterval(() => {
     const records = dbModule.getEmptyLocationRecords();
@@ -254,6 +435,13 @@ app.whenReady().then(() => {
   createWindow();
   createTray();
   startTimer();
+  
+  // 窗口管理
+  app.on('activate', () => {
+    if (mainWindow === null) {
+      createWindow();
+    }
+  });
 });
 
 app.on('window-all-closed', () => {

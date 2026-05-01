@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>扫码入库（网页版）</title>
+    <link rel="stylesheet" href="assets/css/pet.css">
+    <script src="assets/js/web-api.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #2196F3;
+        }
+
+        .scan-area {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .qr-camera {
+            width: 400px;
+            height: 300px;
+            background-color: #ddd;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .qr-placeholder {
+            width: 100%;
+            height: 100%;
+            background-color: #666;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .qr-data {
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .form-input:focus {
+            border-color: #2196F3;
+            outline: none;
+        }
+
+        .button-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .btn-primary {
+            background-color: #2196F3;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #1976D2;
+        }
+
+        .btn-secondary {
+            background-color: #FF9800;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #F57C00;
+        }
+
+        .btn-danger {
+            background-color: #F44336;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #D32F2F;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        .status-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .goods-card {
+            margin-bottom: 15px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        .goods-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .goods-name {
+            font-weight: bold;
+            min-width: 200px;
+        }
+
+        .goods-quantity {
+            color: #666;
+            margin-right: 10px;
+        }
+
+        .goods-price {
+            color: #666;
+            margin-right: 10px;
+        }
+
+        .goods-supplier {
+            color: #666;
+            margin-right: 10px;
+        }
+
+        .goods-action {
+            color: #2196F3;
+            cursor: pointer;
+        }
+
+        .goods-action:hover {
+            color: #1976D2;
+        }
+
+        .empty-location {
+            color: #F44336;
+            font-weight: bold;
+        }
+
+        .location-select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .success {
+            text-align: center;
+            padding: 20px;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .failure {
+            text-align: center;
+            padding: 20px;
+            color: #F44336;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">扫码入库</h1>
+
+        <!-- 扫码区域 -->
+        <div class="scan-area">
+            <div class="qr-camera">
+                <div class="qr-placeholder">
+                    网页版不支持摄像头扫描
+                </div>
+            </div>
+            
+            <div class="qr-data">
+                <input type="text" class="form-input" id="qr-data-input" placeholder="请输入QR码内容">
+                <button class="btn btn-secondary" id="scan-camera-btn">摄像头扫描</button>
+                <button class="btn btn-secondary" id="scan-screen-btn">截屏识别</button>
+                <button class="btn btn-secondary" id="scan-test-btn">测试QR码</button>
+            </div>
+        </div>
+
+        <!-- 商品信息 -->
+        <div id="goods-info" class="goods-card">
+            <div class="status-title">商品信息</div>
+            <div id="goods-details" style="display: none;">
+                <div class="goods-item">
+                    <span class="goods-name">商品名称:</span>
+                    <span id="goods-name-value"></span>
+                </div>
+                <div class="goods-item">
+                    <span class="goods-name">数量:</span>
+                    <span id="goods-quantity-value"></span>
+                </div>
+                <div class="goods-item">
+                    <span class="goods-name">价格:</span>
+                    <span id="goods-price-value"></span>
+                </div>
+                <div class="goods-item">
+                    <span class="goods-name">供应商:</span>
+                    <span id="goods-supplier-value"></span>
+                </div>
+                <div class="goods-item">
+                    <span class="goods-name">采购人:</span>
+                    <span id="goods-purchaser-value"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 存放位置 -->
+        <div class="form-group">
+            <label class="cod-label">存放位置</label>
+            <select class="location-select" id="storage-location">
+                <option value="">选择存放位置</option>
+                <option value="仓库A-货架1">仓库A-货架1</option>
+                <option value="仓库A-货架2">仓库A-货架2</option>
+                <option value="仓库B-货架1">仓库B-货架1</option>
+                <option value="仓库B-货架2">仓库B-货架2</option>
+                <option value="实验室1-冰箱">实验室1-冰箱</option>
+                <option value="实验室2-冰箱">实验室2-冰箱</option>
+                <option value="试剂柜1-上层">试剂柜1-上层</option>
+                <option value="试剂柜1-下层">试剂柜1-下层</option>
+            </select>
+        </div>
+
+        <!-- 未填报位置商品 -->
+        <div id="empty-location-container" style="display: none;">
+            <div class="status-title">未填报位置商品</div>
+            <div id="empty-location-list"></div>
+        </div>
+
+        <!-- 状态 -->
+        <div id="status-container" class="status">
+            <div id="status-content"></div>
+        </div>
+
+        <!-- 按钮 -->
+        <div class="button-container">
+            <button class="btn btn-primary" id="save-btn">入库</button>
+            <button class="btn btn-secondary" id="refresh-btn">刷新</button>
+            <button class="btn btn-danger" id="close-btn">关闭</button>
+        </div>
+
+        <!-- 加载/成功/失败 -->
+        <div id="loading-section" class="loading" style="display: none;">
+            正在处理...
+        </div>
+
+        <div id="success-section" class="success" style="display: none;">
+            ✓ 入库成功！
+        </div>
+
+        <div id="failure-section" class="failure" style="display: none;">
+            ✗ 入库失败
+        </div>
+    </div>
+
+    <script>
+        // 初始化数据库
+        function initDatabase() {
+            const result = window.api.initDatabase();
+            console.log('数据库初始化:', result);
+        }
+
+        // 模拟摄像头扫码
+        function scanWithCamera() {
+            const statusContent = document.getElementById('status-content');
+            statusContent.textContent = '网页版不支持摄像头扫码，请在桌面版中使用此功能';
+            
+            // 提供测试QR码
+            const testQR = '商品名称：PCR试剂 数量：5 价格：99.99 供应商：供应商A';
+            document.getElementById('qr-data-input').value = testQR;
+            statusContent.textContent = '测试QR码已加载';
+            parseQRData(testQR);
+        }
+
+        // 模拟截屏识别
+        function scanWithScreenCapture() {
+            const statusContent = document.getElementById('status-content');
+            statusContent.textContent = '网页版不支持截屏识别，请在桌面版中使用此功能';
+            
+            const testQR = '商品名称：缓冲液 数量：10 价格：45.50 供应商：供应商B';
+            document.getElementById('qr-data-input').value = testQR;
+            statusContent.textContent = '测试QR码已加载';
+            parseQRData(testQR);
+        }
+
+        // 测试QR码
+        function scanTestQR() {
+            const qrList = [
+                '商品名称：PCR试剂 数量：5 价格：99.99 供应商：供应商A',
+                '商品名称：缓冲液 数量：10 价格：45.50 供应商：供应商B',
+                '商品名称：细胞培养基 数量：15 价格：199.99 供应商：供应商C',
+                '商品名称：抗生素 数量：5 价格：299.99 供应商：供应商D'
+            ];
+            
+            const randomQR = qrList[Math.floor(Math.random() * qrList.length)];
+            document.getElementById('qr-data-input').value = randomQR;
+            const statusContent = document.getElementById('status-content');
+            statusContent.textContent = '测试QR码已加载';
+            parseQRData(randomQR);
+        }
+
+        // 解析QR码数据
+        function parseQRData(qrData) {
+            // 解析QR码格式: "商品名称：XXX 数量：YYY 价格：ZZZ.ZZ 供应商：XXX"
+            const match = qrData.match(/商品名称：([^ ]+) 数量：([^ ]+) 价格：([^ ]+) 供应商：([^ ]+)/);
+            
+            if (match) {
+                const goodsName = match[1];
+                const quantity = parseInt(match[2]);
+                const price = parseFloat(match[3]);
+                const supplier = match[4];
+                
+                // 显示商品信息
+                document.getElementById('goods-name-value').textContent = goodsName;
+                document.getElementById('goods-quantity-value').textContent = quantity;
+                document.getElementById('goods-price-value').textContent = price;
+                document.getElementById('goods-supplier-value').textContent = supplier;
+                
+                // 获取系统用户名作为采购人
+                document.getElementById('goods-purchaser-value').textContent = '系统用户';
+                
+                document.getElementById('goods-details').style.display = 'block';
+            } else {
+                document.getElementById('status-content').textContent = 'QR码格式错误';
+            }
+        }
+
+        // 入库保存
+        function saveGoods() {
+            const qrData = document.getElementById('qr-data-input').value;
+            const location = document.getElementById('storage-location').value;
+            
+            if (!qrData.trim()) {
+                document.getElementById('status-content').textContent = '请先输入QR码内容';
+                return;
+            }
+            
+            const loadingSection = document.getElementById('loading-section');
+            const successSection = document.getElementById('success-section');
+            const failureSection = document.getElementById('failure-section');
+            
+            loadingSection.style.display = 'block';
+            
+            // 解析QR码并入库
+            setTimeout(() => {
+                const match = qrData.match(/商品名称：([^ ]+) 数量：([^ ]+) 价格：([^ ]+) 供应商：([^ ]+)/);
+                
+                if (match && location) {
+                    const goodsData = {
+                        goods_name: match[1],
+                        quantity: parseInt(match[2]),
+                        price: parseFloat(match[3]),
+                        supplier: match[4],
+                        purchaser: '系统用户',
+                        storage_location: location
+                    };
+                    
+                    // 调用数据库入库API
+                    try {
+                        const result = window.electron.ipcRenderer.sendSync('insert-from-qrcode', JSON.stringify(goodsData));
+                        
+                        if (result.success) {
+                            loadingSection.style.display = 'none';
+                            successSection.style.display = 'block';
+                            document.getElementById('status-content').textContent = `入库成功: ${result.goods_name}, 数量: ${result.quantity}`;
+                            
+                            // 检查是否有未填报位置的商品
+                            checkEmptyLocations();
+                            
+                            setTimeout(() => {
+                                successSection.style.display = 'none';
+                            }, 3000);
+                        } else {
+                            loadingSection.style.display = 'none';
+                            failureSection.style.display = 'block';
+                            document.getElementById('status-content').textContent = `入库失败: ${result.error}`;
+                        }
+                    } catch (error) {
+                        loadingSection.style.display = 'none';
+                        failureSection.style.display = 'block';
+                        document.getElementById('status-content').textContent = '数据库操作失败';
+                    }
+                } else {
+                    loadingSection.style.display = 'none';
+                    failureSection.style.display = 'block';
+                    document.getElementById('status-content').textContent = 'QR码解析失败或未选择位置';
+                }
+            }, 1000);
+        }
+
+        // 检查未填报位置的商品
+        function checkEmptyLocations() {
+            try {
+                const result = window.electron.ipcRenderer.sendSync('get-empty-location-records');
+                
+                if (result.success && result.count > 0) {
+                    const emptyLocationContainer = document.getElementById('empty-location-container');
+                    const emptyLocationList = document.getElementById('empty-location-list');
+                    
+                    emptyLocationContainer.style.display = 'block';
+                    emptyLocationList.innerHTML = '';
+                    
+                    result.data.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'goods-item';
+                        div.innerHTML = `
+                            <span class="goods-name">${item.goods_name}</span>
+                            <span class="goods-quantity">${item.quantity}</span>
+                            <span class="goods-supplier">${item.supplier || '未知'}</span>
+                            <span class="empty-location">未填报位置</span>
+                            <span class="goods-action" onclick="updateLocation(${item.id})">填报位置</span>
+                        `;
+                        emptyLocationList.appendChild(div);
+                    });
+                    
+                    // 触发桌宠提醒动画
+                    window.electron.ipcRenderer.sendSync('trigger-pet-animation', result.data);
+                }
+            } catch (error) {
+                console.log('检查未填报位置失败:', error);
+            }
+        }
+
+        // 更新位置
+        function updateLocation(goodsId) {
+            const location = document.getElementById('storage-location').value;
+            
+            if (location) {
+                try {
+                    const result = window.electron.ipcRenderer.sendSync('update-storage-location', goodsId, location);
+                    
+                    if (result.success) {
+                        document.getElementById('status-content').textContent = `位置更新成功: ${result.message}`;
+                        checkEmptyLocations();
+                    } else {
+                        document.getElementById('status-content').textContent = `位置更新失败: ${result.error}`;
+                    }
+                } catch (error) {
+                    document.getElementById('status-content').textContent = '数据库操作失败';
+                }
+            } else {
+                document.getElementById('status-content').textContent = '请先选择位置';
+            }
+        }
+
+        // 刷新
+        function refreshData() {
+            document.getElementById('qr-data-input').value = '';
+            document.getElementById('storage-location').value = '';
+            document.getElementById('goods-details').style.display = 'none';
+            document.getElementById('empty-location-container').style.display = 'none';
+            document.getElementById('status-content').textContent = '';
+            
+            checkEmptyLocations();
+        }
+
+        // 按钮事件绑定
+        document.getElementById('scan-camera-btn').addEventListener('click', scanWithCamera);
+        document.getElementById('scan-screen-btn').addEventListener('click', scanWithScreenCapture);
+        document.getElementById('scan-test-btn').addEventListener('click', scanTestQR);
+        document.getElementById('save-btn').addEventListener('click', saveGoods);
+        document.getElementById('refresh-btn').addEventListener('click', refreshData);
+        document.getElementById('close-btn').addEventListener('click', () => {
+            window.close();
+        });
+
+        // QR输入框变化时解析
+        document.getElementById('qr-data-input').addEventListener('change', function() {
+            if (this.value.trim()) {
+                parseQRData(this.value);
+            }
+        });
+
+        // 初始化
+        initDatabase();
+        refreshData();
+    </script>
+</body>
+</html>

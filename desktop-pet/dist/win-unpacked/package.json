@@ -1,0 +1,85 @@
+{
+  "name": "desktop-pet",
+  "version": "1.0.0",
+  "description": "QR码扫描入库桌面宠物",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node __tests__/test_all.js",
+    "qr-test": "node simple_test.js",
+    "build": "electron-packager . desktop-pet --platform=win32 --arch=x64 --out=dist",
+    "build:win": "electron-builder --win",
+    "windows-build": "node build-windows.js"
+  },
+  "keywords": [
+    "qr",
+    "inventory",
+    "desktop",
+    "pet",
+    "electron"
+  ],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "axios": "^1.7.2",
+    "pdfkit": "^0.14.0",
+    "sql.js": "^1.14.1"
+  },
+  "devDependencies": {
+    "electron": "^29.0.0",
+    "electron-builder": "^24.13.3",
+    "electron-packager": "^17.1.2"
+  },
+  "build": {
+    "appId": "com.blackbug23.desktop-pet",
+    "productName": "桌面宠物",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "database.js",
+      "simple_db.js",
+      "simple_db_async.js",
+      "app.js",
+      "simple_main.js",
+      "preload.js",
+      "index.html",
+      "guide.html",
+      "scanner.html",
+      "settings.html",
+      "src/**/*",
+      "__tests__/**/*",
+      "package.json",
+      "assets/**/*",
+      "README.md",
+      "WINDOWS_INSTALL.md",
+      "templates/**/*",
+      "database/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "extraResources": [
+      {
+        "from": "assets",
+        "to": "assets"
+      }
+    ]
+  }
+}

@@ -1,0 +1,4 @@
+# 这是一个简单的图标文件（实际使用需要png图像）
+# 我们创建一个简单的base64图标
+# 实际使用时应该替换为真正的png文件
+echo "Placeholder for icon.png - use a real PNG image file"

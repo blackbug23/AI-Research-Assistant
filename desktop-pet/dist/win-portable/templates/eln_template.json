@@ -1,0 +1,64 @@
+{
+  "template": {
+    "title": "实验记录模板",
+    "structure": {
+      "header": {
+        "experiment_title": "实验名称",
+        "experiment_code": "实验编号",
+        "date": "实验日期",
+        "operator": "实验人员",
+        "location": "实验地点"
+      },
+      "content": {
+        "objective": "实验目的",
+        "principle": "实验原理",
+        "materials": "实验材料",
+        "procedures": "实验步骤",
+        "results": "实验结果",
+        "conclusion": "实验结论"
+      },
+      "footer": {
+        "materials_list": "物料清单",
+        "safety_notes": "安全注意事项",
+        "references": "参考文献"
+      }
+    },
+    "format": {
+      "materials": [
+        {
+          "name": "试剂名称",
+          "reagent_master_id": "试剂主ID",
+          "quantity": "用量",
+          "unit": "单位",
+          "lot_number": "批号",
+          "expiration_date": "有效期"
+        }
+      ],
+      "procedures": {
+        "step_number": "步骤编号",
+        "description": "操作描述",
+        "temperature": "温度",
+        "time": "时间",
+        "notes": "注意事项"
+      },
+      "results": {
+        "observation": "观察结果",
+        "measurement": "测量数据",
+        "analysis": "数据分析",
+        "images": "结果图片"
+      }
+    }
+  },
+  "requirements": {
+    "llm_polish": {
+      "temperature": 0.3,
+      "instructions": "仅基于输入润色，禁止添加虚构数据",
+      "output_format": "保持原意不变，文字专业、清晰、准确"
+    },
+    "fact_checking": {
+      "material_verification": "试剂名称和用量必须与原始物料一致",
+      "procedure_verification": "步骤描述必须与原始步骤一致",
+      "tolerance": "用量偏差不得超过±10%"
+    }
+  }
+}

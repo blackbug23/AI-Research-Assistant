@@ -70,6 +70,18 @@
       {
         "from": "assets",
         "to": "assets"
+      },
+      {
+        "from": "templates",
+        "to": "templates"
+      },
+      {
+        "from": ".env",
+        "to": ""
+      },
+      {
+        "from": ".env.example",
+        "to": ""
       }
     ]
   }

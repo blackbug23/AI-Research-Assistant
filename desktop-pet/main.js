@@ -11,9 +11,12 @@ let pdfWindow = null;
 let settingsWindow = null;
 
 function createWindow() {
+  // 第一步：窗口尺寸 = 宠物大小 + 少量边距，不再大面积挡桌面
+  const PET_SIZE = 180; // 宠物150px + 内外边距
+
   mainWindow = new BrowserWindow({
-    width: 400,
-    height: 400,
+    width: PET_SIZE,
+    height: PET_SIZE,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -24,7 +27,9 @@ function createWindow() {
     alwaysOnTop: true,
     skipTaskbar: true,
     resizable: false,
-    movable: true
+    movable: true,
+    // 第三步：防止透明区域遮挡桌面点击
+    focusable: false
   });
 
   // 加载应用界面
@@ -33,8 +38,10 @@ function createWindow() {
   // 隐藏默认的Electron菜单
   mainWindow.setMenu(null);
 
-  // 暴露数据库API到window对象
+  // 第一步续：页面加载后根据实际内容调整窗口大小
   mainWindow.webContents.on('dom-ready', () => {
+    // 页面内容撑满窗口，无需额外调整
+    // 确保没有调用 setMaximumSize / setMinimumSize 限制窗口
     mainWindow.webContents.executeJavaScript(`
       window.api = {
         initDatabase: () => {

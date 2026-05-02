@@ -26,6 +26,7 @@
             justify-content: center;
             z-index: 99999;
             transition: opacity 0.5s, transform 0.5s ease-out;
+            -webkit-app-region: no-drag;
         }
 
         .loading-pet {
@@ -53,30 +54,18 @@
 
         #pet-container {
             position: fixed;
-            top: 50px;
-            right: 50px;
-            width: 150px;
-            height: 150px;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             cursor: grab;
-            transition: transform 0.2s;
             z-index: 9999;
-            -webkit-app-region: no-drag;
+            /* 第二步：拖拽宠物 = 拖拽整个窗口 */
+            -webkit-app-region: drag;
         }
 
         #pet-container:active {
             cursor: grabbing;
-        }
-
-        .drag-handle {
-            position: absolute;
-            bottom: -12px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 40px;
-            height: 6px;
-            background: rgba(0,0,0,0.15);
-            border-radius: 3px;
-            pointer-events: none;
         }
 
         #pet {
@@ -90,6 +79,7 @@
             justify-content: center;
             position: relative;
             transition: transform 0.3s, background-color 0.3s;
+            margin: 10px auto 0;
         }
 
         #pet:hover {
@@ -176,6 +166,7 @@
             animation: bubble-appear 0.5s ease-out;
             z-index: 10000;
             display: none;
+            -webkit-app-region: no-drag;
         }
 
         .bubble-header {
@@ -216,6 +207,7 @@
             cursor: pointer;
             font-size: 14px;
             transition: background-color 0.2s;
+            -webkit-app-region: no-drag;
         }
 
         .bubble-btn:hover {
@@ -224,6 +216,7 @@
 
         .bubble-btn-secondary {
             background-color: #FF9800;
+            -webkit-app-region: no-drag;
         }
 
         .bubble-btn-secondary:hover {
@@ -232,6 +225,7 @@
 
         .bubble-btn-danger {
             background-color: #F44336;
+            -webkit-app-region: no-drag;
         }
 
         .bubble-btn-danger:hover {
@@ -251,6 +245,7 @@
             animation: bubble-appear 0.5s ease-out;
             z-index: 10000;
             display: none;
+            -webkit-app-region: no-drag;
         }
 
         #reminder-bubble {
@@ -266,6 +261,7 @@
             animation: bubble-appear 0.5s ease-out;
             z-index: 10000;
             display: none;
+            -webkit-app-region: no-drag;
         }
 
         .shake-animation {
@@ -342,7 +338,6 @@
                 <div class="ear ear-left"></div>
                 <div class="ear ear-right"></div>
             </div>
-            <div class="drag-handle"></div>
         </div>
 
         <!-- 操作气泡 -->
@@ -369,7 +364,7 @@
             </div>
             <div id="location-content" class="bubble-content"></div>
             <div class="bubble-buttons">
-                <select id="location-select">
+                <select id="location-select" style="-webkit-app-region: no-drag;">
                     <option value="仓库A-货架1">仓库A-货架1</option>
                     <option value="仓库A-货架2">仓库A-货架2</option>
                     <option value="仓库B-货架1">仓库B-货架1</option>
@@ -399,7 +394,7 @@
     </div>
 
     <!-- PDF预览气泡 -->
-    <div id="pdf-bubble" style="position: absolute; bottom: 220px; left: 0; background-color: rgba(255,255,255,0.95); border: 2px solid #4CAF50; border-radius: 15px; padding: 15px; width: 300px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); animation: bubble-appear 0.5s ease-out; z-index: 10000; display: none;">
+    <div id="pdf-bubble" style="position: absolute; bottom: 220px; left: 0; background-color: rgba(255,255,255,0.95); border: 2px solid #4CAF50; border-radius: 15px; padding: 15px; width: 300px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); animation: bubble-appear 0.5s ease-out; z-index: 10000; display: none; -webkit-app-region: no-drag;">
         <div class="bubble-header">
             <div class="bubble-icon">📄</div>
             <div class="bubble-title">PDF生成成功</div>
@@ -431,57 +426,6 @@
                 loadingScreen.style.display = 'none';
             }, 300);
         }, 1000);
-        
-        // 保存宠物位置到localStorage
-        function savePetPosition() {
-            const pos = petContainer.getBoundingClientRect();
-            localStorage.setItem('petPosition', JSON.stringify({
-                x: pos.left,
-                y: pos.top
-            }));
-        }
-        
-        // 恢复宠物位置
-        function restorePetPosition() {
-            const savedPos = localStorage.getItem('petPosition');
-            if (savedPos) {
-                const pos = JSON.parse(savedPos);
-                petContainer.style.left = pos.x + 'px';
-                petContainer.style.top = pos.y + 'px';
-            }
-        }
-        
-        // 拖拽桌宠（无边距限制，全屏自由拖拽）
-        let isDragging = false;
-        let startX, startY, startLeft, startTop;
-        
-        petContainer.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            const rect = petContainer.getBoundingClientRect();
-            startX = e.clientX;
-            startY = e.clientY;
-            startLeft = rect.left;
-            startTop = rect.top;
-            petContainer.style.transition = 'none';
-        });
-        
-        document.addEventListener('mousemove', (e) => {
-            if (isDragging) {
-                const deltaX = e.clientX - startX;
-                const deltaY = e.clientY - startY;
-                
-                petContainer.style.left = (startLeft + deltaX) + 'px';
-                petContainer.style.top = (startTop + deltaY) + 'px';
-            }
-        });
-        
-        document.addEventListener('mouseup', () => {
-            if (isDragging) {
-                isDragging = false;
-                petContainer.style.transition = '';
-                savePetPosition();
-            }
-        });
         
         // 右键点击宠物显示操作气泡
         pet.addEventListener('contextmenu', (e) => {
@@ -572,8 +516,7 @@
                 }
             };
             
-            // 恢复宠物位置
-            restorePetPosition();
+            // 恢复宠物位置 - 窗口靠OS管理
         });
         
         // 气泡关闭事件
@@ -615,10 +558,6 @@
         document.getElementById('close-pdf-btn').addEventListener('click', () => {
             document.getElementById('pdf-bubble').style.display = 'none';
         });
-        
-        // 移动宠物到默认位置
-        petContainer.style.left = '50px';
-        petContainer.style.top = '50px';
     </script>
 </body>
 </html>

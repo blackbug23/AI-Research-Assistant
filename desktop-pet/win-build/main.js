@@ -1,7 +1,7 @@
 const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, dialog } = require('electron');
 const fs = require('fs');
 const path = require('path');
-const dbModule = require('./database.js');
+const dbModule = require('./database_sqljs.js');
 
 let mainWindow;
 let tray;
@@ -64,7 +64,7 @@ function createWindow() {
         queryInventoryData: () => {
           const result = require('electron').ipcRenderer.sendSync('query-inventory');
           return result;
-        },
+4        },
         queryGoodsInData: () => {
           const result = require('electron').ipcRenderer.sendSync('query-goods-in');
           return result;
@@ -153,7 +153,7 @@ function openScanner() {
     frame: true,
     resizable: false
   });
-  scannerWindow.loadFile('scanner.html');
+  scannerWindow.loadFile('scanner2.html');
 }
 
 function openGuide() {
@@ -219,9 +219,13 @@ function testVoiceInput() {
 
 // IPC消息处理
 function setupIPC() {
-  ipcMain.on('init-database', (event) => {
-    const result = dbModule.initDatabase();
-    event.returnValue = result;
+  ipcMain.on('init-database', async (event) => {
+    try {
+      const result = await dbModule.initDatabase();
+      event.returnValue = result;
+    } catch (error) {
+      event.returnValue = { success: false, error: error.message };
+    }
   });
   
   ipcMain.on('trigger-pet-animation', (event, goodsList) => {
@@ -318,31 +322,47 @@ function setupIPC() {
     event.returnValue = settings;
   });
 
-  ipcMain.on('insert-from-qrcode', (event, qrData) => {
-    const result = dbModule.insertFromQRCode(qrData);
-    event.returnValue = result;
+  ipcMain.on('insert-from-qrcode', async (event, qrData) => {
+    try {
+      const result = await dbModule.insertFromQRCode(qrData);
+      event.returnValue = result;
+    } catch (error) {
+      event.returnValue = { success: false, error: error.message };
+    }
   });
 
-  ipcMain.on('get-empty-location-records', (event) => {
-    const result = dbModule.getEmptyLocationRecords();
-    event.returnValue = result;
+  ipcMain.on('get-empty-location-records', async (event) => {
+    try {
+      const result = await dbModule.getEmptyLocationRecords();
+      event.returnValue = result;
+    } catch (error) {
+      event.returnValue = { success: false, error: error.message, count: 0, data: [] };
+    }
   });
 
-  ipcMain.on('update-storage-location', (event, goodsId, location) => {
-    const result = dbModule.updateStorageLocation(goodsId, location);
-    event.returnValue = result;
+  ipcMain.on('update-storage-location', async (event, goodsId, location) => {
+    try {
+      const result = await dbModule.updateStorageLocation(goodsId, location);
+      event.returnValue = result;
+    } catch (error) {
+      event.returnValue = { success: false, error: error.message };
+    }
   });
 
-  ipcMain.on('simulate-qrscan', (event) => {
-    const qrcodes = [
-      '商品名称：笔记本电脑 数量：5 价格：2999.99 供应商：供应商A',
-      '商品名称：鼠标 数量：100 价格：49.99 供应商：供应商B',
-      '商品名称：键盘 数量：50 价格：129.99 供应商：供应商C',
-      '商品名称：显示器 数量：20 价格：999.99 供应商：供应商D'
-    ];
-    const randomQR = qrcodes[Math.floor(Math.random() * qrcodes.length)];
-    const result = dbModule.insertFromQRCode(randomQR);
-    event.returnValue = result;
+  ipcMain.on('simulate-qrscan', async (event) => {
+    try {
+      const qrcodes = [
+        '商品名称：笔记本电脑 数量：5 价格：2999.99 供应商：供应商A',
+        '商品名称：鼠标 数量：100 价格：49.99 供应商：供应商B',
+        '商品名称：键盘 数量：50 价格：129.99 供应商：供应商C',
+        '商品名称：显示器 数量：20 价格：999.99 供应商：供应商D'
+      ];
+      const randomQR = qrcodes[Math.floor(Math.random() * qrcodes.length)];
+      const result = await dbModule.insertFromQRCode(randomQR);
+      event.returnValue = result;
+    } catch (error) {
+      event.returnValue = { success: false, error: error.message };
+    }
   });
 
   ipcMain.on('get-voice-location-input', (event) => {
@@ -356,19 +376,31 @@ function setupIPC() {
     event.returnValue = { location };
   });
 
-  ipcMain.on('query-inventory', (event) => {
-    const result = dbModule.queryInventoryData();
-    event.returnValue = result;
+  ipcMain.on('query-inventory', async (event) => {
+    try {
+      const result = await dbModule.queryInventoryData();
+      event.returnValue = result;
+    } catch (error) {
+      event.returnValue = { success: false, error: error.message, data: [] };
+    }
   });
 
-  ipcMain.on('query-goods-in', (event) => {
-    const result = dbModule.queryGoodsInData();
-    event.returnValue = result;
+  ipcMain.on('query-goods-in', async (event) => {
+    try {
+      const result = await dbModule.queryGoodsInData();
+      event.returnValue = result;
+    } catch (error) {
+      event.returnValue = { success: false, error: error.message, data: [] };
+    }
   });
 
-  ipcMain.on('clear-database', (event) => {
-    const result = dbModule.clearDatabase();
-    event.returnValue = result;
+  ipcMain.on('clear-database', async (event) => {
+    try {
+      const result = await dbModule.clearDatabase();
+      event.returnValue = result;
+    } catch (error) {
+      event.returnValue = { success: false, error: error.message };
+    }
   });
 
   ipcMain.on('start-reminder-timer', (event) => {
@@ -392,7 +424,7 @@ function setupIPC() {
     console.log('显示提醒对话框:', message);
     
     if (mainWindow) {
-      mainWindow.webContents.send('show-dialog', message);
+      mainWindow.webContents.send('show-dialog', message2);
     }
     
     event.returnValue = { success: true };
@@ -416,16 +448,20 @@ function startTimer() {
   }
 
   // 每5分钟检查一次空位置记录
-  setInterval(() => {
-    const records = dbModule.getEmptyLocationRecords();
-    
-    if (records.success && records.count > 0) {
-      console.log(`发现 ${records.count} 个商品未录入位置`);
+  setInterval(async () => {
+    try {
+      const records = await dbModule.getEmptyLocationRecords();
       
-      // 触发桌宠动画
-      if (mainWindow) {
-        mainWindow.webContents.send('trigger-animation', records.data);
+      if (records.success && records.count > 0) {
+        console.log(`发现 ${records.count} 个商品未录入位置`);
+        
+        // 触发桌宠动画
+        if (mainWindow) {
+          mainWindow.webContents.send('trigger-animation', records.data);
+        }
       }
+    } catch (error) {
+      console.error('检查空位置记录失败:', error);
     }
   }, 5 * 60 * 1000);
 }

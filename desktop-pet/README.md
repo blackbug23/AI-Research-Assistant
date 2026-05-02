@@ -221,3 +221,40 @@ CREATE TABLE inventory (
 - .env读取宠物动画速度、提醒间隔、PDF路径
 - 首次启动检查.env文件
 - 设置面板写入.env
+## 数据库升级：better-sqlite3 → sql.js
+
+本项目已完成数据库升级，从 better-sqlite3 迁移到 sql.js。
+
+### 升级原因
+- sql.js 是纯JavaScript SQLite库，无需安装SQLite二进制文件
+- 更好的跨平台兼容性，尤其是在Windows环境中
+- 不再依赖系统级的SQLite库
+
+### 主要变更
+1. **依赖包**：所有 `better-sqlite3` 依赖已替换为 `sql.js`
+2. **数据库模块**：所有数据库相关文件已更新为异步API
+3. **IPC处理**：主程序的IPC事件处理已适配异步数据库操作
+4. **API兼容**：保持与原始代码相同的API结构
+
+### 文件更新清单
+- `package.json` - 更新依赖
+- `database.js` - 新的sql.js数据库模块
+- `src/database.js` - sql.js版本
+- `win-build/src/database.js` - sql.js版本
+- `main.js` - 异步IPC处理
+- `test_database.js` - sql.js测试文件
+
+### 安装使用
+```bash
+npm install sql.js
+npm start
+```
+
+### 故障排除
+如果遇到sql.js相关问题，可切换到JSON数据库方案：
+```bash
+mv database.js backup_db.js
+cp simple_db_async.js database.js
+```
+
+详细更新说明见 `UPDATE.md`。

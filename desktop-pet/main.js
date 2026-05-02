@@ -92,7 +92,7 @@ function createWindow() {
   });
 
   mainWindow.on('closed', () => {
-    mainFriends = null;
+    mainWindow = null;
   });
 }
 
@@ -153,7 +153,7 @@ function openScanner() {
     frame: true,
     resizable: false
   });
-  scannerWindow.loadFile('scanner2.html');
+  scannerWindow.loadFile('scanner.html');
 }
 
 function openGuide() {
@@ -179,8 +179,8 @@ function openSettings() {
     settingsWindow.close();
   }
   settingsWindow = new BrowserWindow({
-    width: 400,
-    height: 300,
+    width: 500,
+    height: 500,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false
@@ -190,6 +190,10 @@ function openSettings() {
     resizable: false
   });
   settingsWindow.loadFile('settings.html');
+  
+  settingsWindow.on('closed', () => {
+    settingsWindow = null;
+  });
 }
 
 function openOutputFolder() {
@@ -284,21 +288,36 @@ function setupIPC() {
   });
   
   ipcMain.on('save-settings', (event, settings) => {
-    const envPath = path.join(__dirname, '.env');
-    const envContent = fs.readFileSync(envPath, 'utf-8');
-    const lines = envContent.split('\n');
-    
-    for (const [key, value] of Object.entries(settings)) {
-      const lineIndex = lines.findIndex(line => line.startsWith(key + '='));
-      if (lineIndex !== -1) {
-        lines[lineIndex] = `${key}=${value}`;
-      } else {
-        lines.push(`${key}=${value}`);
+    try {
+      const envPath = path.join(__dirname, '.env');
+      let envContent = '';
+      if (fs.existsSync(envPath)) {
+        envContent = fs.readFileSync(envPath, 'utf-8');
       }
+      const lines = envContent ? envContent.split('\n') : [];
+      
+      for (const [key, value] of Object.entries(settings)) {
+        const lineIndex = lines.findIndex(line => line.startsWith(key + '='));
+        if (lineIndex !== -1) {
+          lines[lineIndex] = `${key}=${value}`;
+        } else {
+          lines.push(`${key}=${value}`);
+        }
+      }
+      
+      fs.writeFileSync(envPath, lines.join('\n'), 'utf-8');
+      
+      // 设置全局环境变量使其立即生效
+      for (const [key, value] of Object.entries(settings)) {
+        process.env[key] = value;
+      }
+      
+      console.log('设置已保存并生效:', settings);
+      event.returnValue = { success: true };
+    } catch (error) {
+      console.error('保存设置失败:', error);
+      event.returnValue = { success: false, error: error.message };
     }
-    
-    fs.writeFileSync(envPath, lines.join('\n'), 'utf-8');
-    event.returnValue = { success: true };
   });
   
   ipcMain.on('load-settings', (event) => {
@@ -424,10 +443,23 @@ function setupIPC() {
     console.log('显示提醒对话框:', message);
     
     if (mainWindow) {
-      mainWindow.webContents.send('show-dialog', message2);
+      mainWindow.webContents.send('show-dialog', message);
     }
     
     event.returnValue = { success: true };
+  });
+
+  // index.html 气泡按钮 IPC 处理
+  ipcMain.on('triggerQRScan', () => {
+    openScanner();
+  });
+
+  ipcMain.on('openGuide', () => {
+    openGuide();
+  });
+
+  ipcMain.on('openOutputFolder', () => {
+    openOutputFolder();
   });
 }
 

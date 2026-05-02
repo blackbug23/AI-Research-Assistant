@@ -12,10 +12,10 @@
         }
 
         .container {
-            max-width: 400px;
+            max-width: 480px;
             margin: 0 auto;
             background-color: white;
-            padding: 30px;
+            padding: 25px;
             border-radius: 10px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
@@ -28,34 +28,28 @@
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
 
         .form-label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             font-weight: bold;
+            font-size: 13px;
         }
 
-        .form-input {
+        .form-input, .form-select {
             width: 100%;
-            padding: 10px;
+            padding: 8px 10px;
             border: 1px solid #ccc;
             border-radius: 5px;
-            font-size: 14px;
+            font-size: 13px;
+            box-sizing: border-box;
         }
 
-        .form-input:focus {
+        .form-input:focus, .form-select:focus {
             border-color: #2196F3;
             outline: none;
-        }
-
-        .form-select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 14px;
         }
 
         .button-container {
@@ -77,102 +71,122 @@
             background-color: #2196F3;
             color: white;
         }
-
-        .btn-primary:hover {
-            background-color: #1976D2;
-        }
+        .btn-primary:hover { background-color: #1976D2; }
 
         .btn-secondary {
             background-color: #FF9800;
             color: white;
         }
-
-        .btn-secondary:hover {
-            background-color: #F57C00;
-        }
+        .btn-secondary:hover { background-color: #F57C00; }
 
         .btn-danger {
             background-color: #F44336;
             color: white;
         }
-
-        .btn-danger:hover {
-            background-color: #D32F2F;
-        }
+        .btn-danger:hover { background-color: #D32F2F; }
 
         .status {
-            margin-top: 20px;
+            margin-top: 16px;
             padding: 10px;
             background-color: #f8f9fa;
             border-radius: 5px;
             border: 1px solid #ddd;
-        }
-
-        .status-title {
-            font-weight: bold;
-            margin-bottom: 5px;
+            font-size: 13px;
         }
 
         .loading {
             text-align: center;
-            padding: 20px;
+            padding: 10px;
             color: #666;
+            display: none;
         }
 
         .success {
             text-align: center;
-            padding: 20px;
+            padding: 10px;
             color: #4CAF50;
             font-weight: bold;
+            display: none;
         }
 
         .failure {
             text-align: center;
-            padding: 20px;
+            padding: 10px;
             color: #F44336;
             font-weight: bold;
+            display: none;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin: 20px 0 12px 0;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .section-title:first-of-type {
+            margin-top: 0;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 class="title">设置</title>
+        <div class="title">设置</div>
 
-        <!-- LLM配置 -->
+        <div class="section-title">LLM 配置</div>
+
         <div class="form-group">
             <label class="form-label">LLM服务地址</label>
             <input type="text" class="form-input" id="llm-url" placeholder="http://localhost:8000">
         </div>
 
-        <!-- 库存阈值 -->
         <div class="form-group">
-            <label class="form-label">库存提醒阈值</label>
-            <input type="number" class="form-input" id="inventory-threshold" placeholder="10" value="10">
+            <label class="form-label">LLM模型</label>
+            <input type="text" class="form-input" id="llm-model" placeholder="glm-5">
         </div>
 
-        <!-- 宠物动画速度 -->
+        <div class="form-group">
+            <label class="form-label">LLM温度</label>
+            <input type="text" class="form-input" id="llm-temperature" placeholder="0.7">
+        </div>
+
+        <div class="section-title">库存 & 提醒</div>
+
+        <div class="form-group">
+            <label class="form-label">库存提醒阈值</label>
+            <input type="number" class="form-input" id="inventory-threshold" placeholder="10">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">位置提醒间隔（分钟）</label>
+            <input type="number" class="form-input" id="reminder-interval" placeholder="15">
+        </div>
+
+        <div class="section-title">桌宠</div>
+
         <div class="form-group">
             <label class="form-label">宠物动画速度</label>
             <select class="form-select" id="pet-animation-speed">
                 <option value="slow">慢速</option>
-                <option value="normal" selected>正常</option>
+                <option value="normal">正常</option>
                 <option value="fast">快速</option>
             </select>
         </div>
 
-        <!-- 提醒间隔 -->
         <div class="form-group">
-            <label class="form-label">位置提醒间隔（分钟）</label>
-            <input type="number" class="form-input" id="reminder-interval" placeholder="15" value="15">
+            <label class="form-label">宠物颜色（十六进制）</label>
+            <input type="text" class="form-input" id="pet-color" placeholder="4CAF50">
         </div>
 
-        <!-- PDF输出路径 -->
+        <div class="section-title">文件路径</div>
+
         <div class="form-group">
             <label class="form-label">PDF输出路径</label>
             <input type="text" class="form-input" id="pdf-output-path" placeholder="./output">
         </div>
 
-        <!-- 数据库配置 -->
         <div class="form-group">
             <label class="form-label">数据库路径</label>
             <input type="text" class="form-input" id="database-path" placeholder="./database.db">
@@ -180,7 +194,17 @@
 
         <!-- 状态 -->
         <div id="status-container" class="status">
-            <div id="status-content"></div>
+            <div id="status-content">就绪</div>
+        </div>
+
+        <div id="loading-section" class="loading">
+            正在保存设置...
+        </div>
+        <div id="success-section" class="success">
+            ✓ 设置保存成功，已生效
+        </div>
+        <div id="failure-section" class="failure">
+            ✗ 设置保存失败
         </div>
 
         <!-- 按钮 -->
@@ -189,86 +213,87 @@
             <button class="btn btn-secondary" id="refresh-btn">刷新设置</button>
             <button class="btn btn-danger" id="close-btn">关闭</button>
         </div>
-
-        <!-- 加载/成功/失败 -->
-        <div id="loading-section" class="loading" style="display: none;">
-            正在保存设置...
-        </div>
-
-        <div id="success-section" class="success" style="display: none;">
-            ✓ 设置保存成功！
-        </div>
-
-        <div id="failure-section" class="failure" style="display: none;">
-            ✗ 设置保存失败
-        </div>
     </div>
 
     <script>
-        // 加载设置
+        const electron = require('electron');
+        const fs = require('fs');
+        const path = require('path');
+
+        // 通过 IPC 获取设置
         function loadSettings() {
             const loadingSection = document.getElementById('loading-section');
+            const statusContent = document.getElementById('status-content');
             loadingSection.style.display = 'block';
-            
+
             try {
-                const settings = window.electron.ipcRenderer.sendSync('load-settings');
-                
-                if (settings) {
+                const settings = electron.ipcRenderer.sendSync('load-settings');
+
+                if (settings && Object.keys(settings).length > 0) {
                     document.getElementById('llm-url').value = settings.LLM_URL || 'http://localhost:8000';
+                    document.getElementById('llm-model').value = settings.LLM_MODEL || 'glm-5';
+                    document.getElementById('llm-temperature').value = settings.LLM_TEMPERATURE || '0.7';
                     document.getElementById('inventory-threshold').value = settings.INVENTORY_THRESHOLD || '10';
-                    document.getElementById('pet-animation-speed').value = settings.PET_ANIMATION_SPEED || 'normal';
                     document.getElementById('reminder-interval').value = settings.REMINDER_INTERVAL || '15';
+                    document.getElementById('pet-animation-speed').value = settings.PET_ANIMATION_SPEED || 'normal';
+                    document.getElementById('pet-color').value = settings.PET_COLOR || '4CAF50';
                     document.getElementById('pdf-output-path').value = settings.PDF_OUTPUT_PATH || './output';
                     document.getElementById('database-path').value = settings.DATABASE_PATH || './database.db';
-                    
-                    document.getElementById('status-content').textContent = '设置加载成功';
+
+                    statusContent.textContent = '设置加载成功';
                 } else {
-                    document.getElementById('status-content').textContent = '未找到设置文件';
+                    statusContent.textContent = '使用默认设置（.env 不存在）';
                 }
             } catch (error) {
-                document.getElementById('status-content').textContent = '加载设置失败';
+                statusContent.textContent = '加载设置失败: ' + error.message;
             }
-            
+
             loadingSection.style.display = 'none';
         }
 
-        // 保存设置
+        // 保存设置到 .env 并通知主进程立即生效
         function saveSettings() {
             const settings = {
                 LLM_URL: document.getElementById('llm-url').value,
+                LLM_MODEL: document.getElementById('llm-model').value,
+                LLM_TEMPERATURE: document.getElementById('llm-temperature').value,
                 INVENTORY_THRESHOLD: document.getElementById('inventory-threshold').value,
-                PET_ANIMATION_SPEED: document.getElementById('pet-animation-speed').value,
                 REMINDER_INTERVAL: document.getElementById('reminder-interval').value,
+                PET_ANIMATION_SPEED: document.getElementById('pet-animation-speed').value,
+                PET_COLOR: document.getElementById('pet-color').value,
                 PDF_OUTPUT_PATH: document.getElementById('pdf-output-path').value,
                 DATABASE_PATH: document.getElementById('database-path').value
             };
-            
+
             const loadingSection = document.getElementById('loading-section');
             const successSection = document.getElementById('success-section');
             const failureSection = document.getElementById('failure-section');
-            
+            const statusContent = document.getElementById('status-content');
+
             loadingSection.style.display = 'block';
-            
+            successSection.style.display = 'none';
+            failureSection.style.display = 'none';
+
             try {
-                const result = window.electron.ipcRenderer.sendSync('save-settings', settings);
-                
+                const result = electron.ipcRenderer.sendSync('save-settings', settings);
+
                 if (result.success) {
                     loadingSection.style.display = 'none';
                     successSection.style.display = 'block';
-                    document.getElementById('status-content').textContent = '设置保存成功';
-                    
+                    statusContent.textContent = '设置保存成功，已立即生效';
+
                     setTimeout(() => {
                         successSection.style.display = 'none';
                     }, 3000);
                 } else {
                     loadingSection.style.display = 'none';
                     failureSection.style.display = 'block';
-                    document.getElementById('status-content').textContent = '设置保存失败';
+                    statusContent.textContent = '设置保存失败';
                 }
             } catch (error) {
                 loadingSection.style.display = 'none';
                 failureSection.style.display = 'block';
-                document.getElementById('status-content').textContent = '保存设置失败';
+                statusContent.textContent = '保存设置失败: ' + error.message;
             }
         }
 

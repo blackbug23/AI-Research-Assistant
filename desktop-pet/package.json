@@ -7,8 +7,10 @@
     "start": "electron .",
     "test": "node __tests__/test_all.js",
     "qr-test": "node simple_test.js",
-    "build": "electron-packager . desktop-pet --platform=win32 --arch=x64 --out=dist",
+    "build": "electron-builder --win",
     "build:win": "electron-builder --win",
+    "build:linux": "electron-builder --linux",
+    "build:mac": "electron-builder --mac",
     "windows-build": "node build-windows.js"
   },
   "keywords": [
@@ -28,8 +30,7 @@
   },
   "devDependencies": {
     "electron": "^29.0.0",
-    "electron-builder": "^24.13.3",
-    "electron-packager": "^17.1.2"
+    "electron-builder": "^24.13.3"
   },
   "build": {
     "appId": "com.blackbug23.desktop-pet",
@@ -56,7 +57,14 @@
       "README.md",
       "WINDOWS_INSTALL.md",
       "templates/**/*",
-      "database/**/*"
+      "database/**/*",
+      ".env.example"
+    ],
+    "extraResources": [
+      {
+        "from": "assets",
+        "to": "assets"
+      }
     ],
     "win": {
       "target": [
@@ -74,12 +82,6 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
-    },
-    "extraResources": [
-      {
-        "from": "assets",
-        "to": "assets"
-      }
-    ]
+    }
   }
 }

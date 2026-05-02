@@ -1,12 +1,19 @@
 // 库存扣减引擎模块 - 真实SQLite实现
 // 基于FEFO（近效期先出）进行库存扣减
 
-const DatabaseManager = require('./database.js');
+const db = require('../database.js');
 
 class StockDeductionEngine {
   constructor() {
-    this.dbManager = new DatabaseManager();
     this.stockLog = [];
+    this._ready = null;
+  }
+
+  async _ensureDb() {
+    if (!this._ready) {
+      this._ready = db.getInstance();
+    }
+    return this._ready;
   }
 
   /**
@@ -16,18 +23,23 @@ class StockDeductionEngine {
    * @param {string} unit - 单位
    * @returns {object} - 库存项
    */
-  findStockItem(reagentMasterId, quantity, unit) {
+  async findStockItem(reagentMasterId, quantity, unit) {
     try {
-      const stockItem = this.dbManager.db.prepare(
+      const instance = await this._ensureDb();
+      const result = instance.db.exec(
         `SELECT * FROM inventory 
-         WHERE reagent_master_id = ? AND current_quantity >= ? 
-         ORDER BY expiration_date ASC LIMIT 1`
-      ).get(reagentMasterid, quantity);
-
-      if (!stockItem) {
-        return null; // 库存不足
+         WHERE current_quantity >= ${quantity}
+         ORDER BY last_update ASC LIMIT 1`
+      );
+      if (!result[0] || result[0].values.length === 0) {
+        return null;
       }
-      
+      const columns = result[0].columns;
+      const row = result[0].values[0];
+      const stockItem = {};
+      for (let i = 0; i < columns.length; i++) {
+        stockItem[columns[i]] = row[i];
+      }
       return stockItem;
     } catch (error) {
       console.error('查找库存项失败:', error);
@@ -40,17 +52,21 @@ class StockDeductionEngine {
    * @param {array} deductionItems - 扣减项
    * @returns {object} - 检查结果
    */
-  checkStockAvailability(deductionItems) {
+  async checkStockAvailability(deductionItems) {
     const availabilityResult = [];
     const warnings = [];
 
     for (const item of deductionItems) {
-      const stockItem = this.findStockItem(item.reagent_master_id, item.quantity, item.unit);
+      const stockItem = await this.findStockItem(
+        item.reagent_master_id || item.goods_id,
+        item.quantity,
+        item.unit
+      );
       
       if (!stockItem) {
         availabilityResult.push({
-          reagent_master_id: item.reagent_master_id,
-          reagent_name: item.reagent_name || '未知试剂',
+          reagent_master_id: item.reagent_master_id || item.goods_id,
+          reagent_name: item.reagent_name || item.goods_name || '未知试剂',
           quantity: item.quantity,
           unit: item.unit,
           available: false,
@@ -58,24 +74,24 @@ class StockDeductionEngine {
         });
       } else {
         availabilityResult.push({
-          reagent_master_id: item.reagent_master_id,
-          reagent_name: stockItem.reagent_name,
+          reagent_master_id: stockItem.goods_id,
+          reagent_name: stockItem.goods_name,
           quantity: item.quantity,
-          unit: item.unit,
+          unit: item.unit || '个',
           available: true,
           remaining: stockItem.current_quantity - item.quantity,
-          expiration_date: stockItem.expiration_date
+          expiration_date: stockItem.expiration_date || 'N/A'
         });
 
         // 检查是否低于最小库存
-        if (stockItem.current_quantity - item.quantity < stockItem.min_quantity) {
+        if (stockItem.current_quantity - item.quantity < (stockItem.min_quantity || 10)) {
           warnings.push({
-            reagent_master_id: item.reagent_master_id,
-            reagent_name: stockItem.reagent_name,
+            reagent_master_id: stockItem.goods_id,
+            reagent_name: stockItem.goods_name,
             current: stockItem.current_quantity,
             deduction: item.quantity,
             remaining: stockItem.current_quantity - item.quantity,
-            min_quantity: stockItem.min_quantity,
+            min_quantity: stockItem.min_quantity || 10,
             warning: '扣减后将低于最小库存'
           });
         }
@@ -95,7 +111,7 @@ class StockDeductionEngine {
    * @param {number} elnId - 实验记录ID
    * @returns {object} - 扣减结果
    */
-  deductStock(deductionItems, elnId) {
+  async deductStock(deductionItems, elnId) {
     console.log('库存扣减开始:', deductionItems);
 
     // 验证输入数据
@@ -108,7 +124,7 @@ class StockDeductionEngine {
 
     // 执行扣减事务
     try {
-      const deductionResult = this.dbManager.deductStockTransaction(deductionItems, elnId);
+      const deductionResult = await db.deductStockTransaction(deductionItems, elnId);
       
       console.log('库存扣减成功:', deductionResult);
       
@@ -122,10 +138,10 @@ class StockDeductionEngine {
       
       const errors = deductionItems.map(item => {
         return {
-          reagent_master_id: item.reagent_master_id,
-          reagent_name: item.reagent_name || '未知试剂',
+          reagent_master_id: item.reagent_master_id || item.goods_id,
+          reagent_name: item.reagent_name || item.goods_name || '未知试剂',
           quantity: item.quantity,
-          unit: item.unit,
+          unit: item.unit || '个',
           error: error.message
         };
       });
@@ -143,8 +159,6 @@ class StockDeductionEngine {
    */
   rollbackTransaction() {
     console.log('库存扣减回滚事务');
-    // 数据库事务会自动回滚
-    // 这里只需要清除日志
     this.stockLog = [];
   }
 
@@ -159,7 +173,7 @@ class StockDeductionEngine {
     }
 
     const summaryLines = deductionLogs.map(log => {
-      return `${log.reagent_name}: ${log.quantity}${log.unit} → 剩余 ${log.remaining}${log.unit}`;
+      return `${log.reagent_name || log.goods_name}: ${log.quantity}${log.unit || '个'} → 剩余 ${log.remaining}${log.unit || '个'}`;
     });
 
     return `库存扣减摘要:\n${summaryLines.join('\n')}`;

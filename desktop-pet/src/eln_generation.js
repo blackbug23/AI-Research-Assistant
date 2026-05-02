@@ -7,7 +7,7 @@ const StockDeductionEngine = require('./stock_deduction.js');
 const FactChecker = require('./fact_checker.js');
 const DraftELNService = require('./draft_eln_service.js');
 const LLMService = require('./llm_service.js');
-const DatabaseManager = require('./database.js');
+const db = require('../database.js');
 
 class ELNGenerationSystem {
   constructor() {
@@ -16,8 +16,15 @@ class ELNGenerationSystem {
     this.factChecker = new FactChecker();
     this.draftELNService = new DraftELNService();
     this.llmService = new LLMService();
-    this.dbManager = new DatabaseManager();
     this.startTime = null;
+    this._dbReady = null;
+  }
+
+  async _ensureDb() {
+    if (!this._dbReady) {
+      this._dbReady = db.getInstance();
+    }
+    return this._dbReady;
   }
 
   /**
@@ -42,7 +49,7 @@ class ELNGenerationSystem {
       return result;
     }
 
-    const draft = this.draftELNService.getDraftById(draftData.id);
+    const draft = await this.draftELNService.getDraftById(draftData.id);
     if (!draft) {
       result.errors.push('草稿不存在');
       return result;
@@ -109,7 +116,7 @@ class ELNGenerationSystem {
     }));
 
     // 先检查库存充足性
-    const availabilityCheck = this.stockDeductionEngine.checkStockAvailability(deductionItems);
+    const availabilityCheck = await this.stockDeductionEngine.checkStockAvailability(deductionItems);
     
     if (!availabilityCheck.allAvailable) {
       result.errors.push('库存不足，无法扣减');
@@ -118,7 +125,7 @@ class ELNGenerationSystem {
     }
 
     // 执行库存扣减
-    const deductionResult = this.stockDeductionEngine.deductStock(deductionItems, draft.id);
+    const deductionResult = await this.stockDeductionEngine.deductStock(deductionItems, draft.id);
 
     if (!deductionResult.success) {
       result.errors.push(`库存扣减失败：${deductionResult.message}`);
@@ -161,7 +168,7 @@ class ELNGenerationSystem {
     };
 
     // 存入数据库
-    const saveResult = this.dbManager.completeELNTransaction(elnRecord);
+    const saveResult = await db.completeELNTransaction(elnRecord);
     if (saveResult.success) {
       result.eln_record_id = saveResult.eln_id;
       result.eln_record_data = elnRecord;
@@ -172,7 +179,7 @@ class ELNGenerationSystem {
 
     // 步骤8：删除草稿
     result.steps.push('删除草稿');
-    const deleteResult = this.draftELNService.deleteDraft(draft.id);
+    const deleteResult = await this.draftELNService.deleteDraft(draft.id);
     
     if (!deleteResult.success) {
       result.errors.push(`草稿删除失败：${deleteResult.error}`);
@@ -229,7 +236,7 @@ class ELNGenerationSystem {
    * 模拟ELN生成流程
    * @returns {object} - 模拟流程结果
    */
-  simulateCompleteFlow() {
+  async simulateCompleteFlow() {
     console.log('模拟ELN生成流程');
 
     // 创建草稿
@@ -262,7 +269,7 @@ class ELNGenerationSystem {
       status: 'draft'
     };
 
-    const createResult = this.draftELNService.createDraft(draftData);
+    const createResult = await this.draftELNService.createDraft(draftData);
     
     if (!createResult.success) {
       return {

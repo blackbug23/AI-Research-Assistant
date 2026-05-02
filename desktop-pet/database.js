@@ -301,8 +301,9 @@ async function initDatabaseInstance() {
 
 const dbInstancePromise = initDatabaseInstance();
 
-// 导出方法
+// 导出方法 + 类（供 src/*.js 使用）
 module.exports = {
+  DesktopPetDatabase,
   initDatabase: async () => {
     const db = await dbInstancePromise;
     return db;
@@ -346,5 +347,10 @@ module.exports = {
   startReminderTimer: async () => {
     const db = await dbInstancePromise;
     return db.startTimer();
+  },
+  // 获取底层数据库实例（供高级使用）
+  getInstance: async () => {
+    const db = await dbInstancePromise;
+    return db;
   }
 };

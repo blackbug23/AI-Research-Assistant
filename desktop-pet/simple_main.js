@@ -25,23 +25,6 @@ function createWindow() {
   mainWindow.loadFile('index.html');
   mainWindow.setMenu(null);
 
-  // 定时检查空位置商品
-  setTimeout(() => {
-    const emptyRecords = Database.getEmptyLocationRecords();
-    if (emptyRecords.success && emptyRecords.count > 0) {
-      // 触发桌宠动画和气泡提醒
-      triggerPetAnimation(emptyRecords.data);
-    }
-  }, 10000); // 10秒后检查
-
-  // 每5分钟检查一次
-  setInterval(() => {
-    const emptyRecords = Database.getEmptyLocationRecords();
-    if (emptyRecords.success && emptyRecords.count > 0) {
-      triggerPetAnimation(emptyRecords.data);
-    }
-  }, 5 * 60 * 1000); // 5分钟
-
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
@@ -77,7 +60,7 @@ function createTray() {
   tray.setContextMenu(contextMenu);
 }
 
-function simulateQRScan() {
+async function simulateQRScan() {
   const qrcodes = [
     '商品名称：笔记本电脑 数量：5 价格：2999.99 供应商：供应商A',
     '商品名称：鼠标 数量：100 价格：49.99 供应商：供应商B',
@@ -86,22 +69,29 @@ function simulateQRScan() {
   
   const randomQR = qrcodes[Math.floor(Math.random() * qrcodes.length)];
   
-  const result = Database.insertFromQRCode(randomQR);
-  console.log('QR码扫描入库:', result);
-  
-  if (mainWindow) {
-    mainWindow.webContents.send('show-message', `扫描成功：${result.goods_name}`);
+  try {
+    const result = await Database.insertFromQRCode(randomQR);
+    console.log('QR码扫描入库:', result);
+    
+    if (mainWindow && result) {
+      mainWindow.webContents.send('show-message', `扫描成功：${result.goods_name || '未知'}`);
+    }
+  } catch (error) {
+    console.error('QR码扫描入库失败:', error);
   }
 }
 
-function checkEmptyLocations() {
-  const records = Database.getEmptyLocationRecords();
-  
-  if (records.success && records.count > 0) {
-    const message = records.data.map(r => `${r.goods_name} (${r.quantity})`).join(', ');
-    console.log('发现空位置商品:', message);
+async function checkEmptyLocations() {
+  try {
+    const records = await Database.getEmptyLocationRecords();
     
-    triggerPetAnimation(records.data);
+    if (records.success && records.count > 0) {
+      const message = records.data.map(r => `${r.goods_name} (${r.quantity})`).join(', ');
+      console.log('发现空位置商品:', message);
+      triggerPetAnimation(records.data);
+    }
+  } catch (error) {
+    console.error('检查空位置失败:', error);
   }
 }
 
@@ -132,29 +122,49 @@ function testVoiceInput() {
 
 // IPC消息处理
 function setupIPC() {
-  ipcMain.on('init-database', (event) => {
-    const result = Database.initDatabase();
-    event.returnValue = result;
+  ipcMain.on('init-database', async (event) => {
+    try {
+      const result = await Database.initDatabase();
+      event.returnValue = result;
+    } catch (error) {
+      event.returnValue = { success: false, error: error.message };
+    }
   });
 
-  ipcMain.on('insert-from-qrcode', (event, qrData) => {
-    const result = Database.insertFromQRCode(qrData);
-    event.returnValue = result;
+  ipcMain.on('insert-from-qrcode', async (event, qrData) => {
+    try {
+      const result = await Database.insertFromQRCode(qrData);
+      event.returnValue = result;
+    } catch (error) {
+      event.returnValue = { success: false, error: error.message };
+    }
   });
 
-  ipcMain.on('get-empty-location-records', (event) => {
-    const result = Database.getEmptyLocationRecords();
-    event.returnValue = result;
+  ipcMain.on('get-empty-location-records', async (event) => {
+    try {
+      const result = await Database.getEmptyLocationRecords();
+      event.returnValue = result;
+    } catch (error) {
+      event.returnValue = { success: false, error: error.message, count: 0, data: [] };
+    }
   });
 
-  ipcMain.on('update-storage-location', (event, goodsId, location) => {
-    const result = Database.updateStorageLocation(goodsId, location);
-    event.returnValue = result;
+  ipcMain.on('update-storage-location', async (event, goodsId, location) => {
+    try {
+      const result = await Database.updateStorageLocation(goodsId, location);
+      event.returnValue = result;
+    } catch (error) {
+      event.returnValue = { success: false, error: error.message };
+    }
   });
 
-  ipcMain.on('simulate-qrscan', (event) => {
-    const result = simulateQRScan();
-    event.returnValue = result;
+  ipcMain.on('simulate-qrscan', async (event) => {
+    try {
+      const result = await simulateQRScan();
+      event.returnValue = result;
+    } catch (error) {
+      event.returnValue = { success: false, error: error.message };
+    }
   });
 
   ipcMain.on('get-voice-location-input', (event) => {
@@ -168,26 +178,35 @@ function setupIPC() {
     event.returnValue = { location };
   });
 
-  ipcMain.on('query-inventory', (event) => {
-    const result = Database.queryInventoryData();
-    event.returnValue = result;
+  ipcMain.on('query-inventory', async (event) => {
+    try {
+      const result = await Database.queryInventoryData();
+      event.returnValue = result;
+    } catch (error) {
+      event.returnValue = { success: false, error: error.message, data: [] };
+    }
   });
 
-  ipcMain.on('query-goods-in', (event) => {
-    const result = Database.queryGoodsInData();
-    event.returnValue = result;
+  ipcMain.on('query-goods-in', async (event) => {
+    try {
+      const result = await Database.queryGoodsInData();
+      event.returnValue = result;
+    } catch (error) {
+      event.returnValue = { success: false, error: error.message, data: [] };
+    }
   });
 
-  ipcMain.on('clear-database', (event) => {
-    const result = Database.clearDatabase();
-    event.returnValue = result;
+  ipcMain.on('clear-database', async (event) => {
+    try {
+      const result = await Database.clearDatabase();
+      event.returnValue = result;
+    } catch (error) {
+      event.returnValue = { success: false, error: error.message };
+    }
   });
 }
 
 app.whenReady().then(() => {
-  // 初始化数据库
-  Database.initDatabase();
-  
   setupIPC();
   createWindow();
   createTray();

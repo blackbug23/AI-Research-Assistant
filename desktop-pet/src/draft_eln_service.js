@@ -1,13 +1,20 @@
 // 实验记录草稿服务模块 - 真实SQLite实现
 // 用于管理 draft_eln 表和实验记录采集
 
-const DatabaseManager = require('./database.js');
+const db = require('../database.js');
 const QRScanner = require('./scanner.js');
 
 class DraftELNService {
   constructor() {
-    this.dbManager = new DatabaseManager();
     this.qrScanner = new QRScanner();
+    this._ready = null;
+  }
+
+  async _ensureDb() {
+    if (!this._ready) {
+      this._ready = db.getInstance();
+    }
+    return this._ready;
   }
 
   /**
@@ -15,7 +22,7 @@ class DraftELNService {
    * @param {object} draftData - 草稿数据
    * @returns {object} - 创建结果
    */
-  createDraft(draftData) {
+  async createDraft(draftData) {
     const validationErrors = [];
 
     // 必需字段验证
@@ -38,7 +45,7 @@ class DraftELNService {
       };
     }
 
-    return this.dbManager.createDraftTransaction(draftData);
+    return db.createDraftTransaction(draftData);
   }
 
   /**
@@ -47,8 +54,8 @@ class DraftELNService {
    * @param {object} updateData - 更新数据
    * @returns {object} - 更新结果
    */
-  updateDraft(draftId, updateData) {
-    return this.dbManager.updateDraftTransaction(draftId, updateData);
+  async updateDraft(draftId, updateData) {
+    return db.updateDraftTransaction(draftId, updateData);
   }
 
   /**
@@ -56,14 +63,27 @@ class DraftELNService {
    * @param {string} status - 草稿状态
    * @returns {array} - 草稿列表
    */
-  getDrafts(status = 'all') {
+  async getDrafts(status = 'all') {
     try {
-      const query = status === 'all' ? 'SELECT * FROM draft_eln' : 'SELECT * FROM draft_eln WHERE status = ?';
-      const drafts = this.dbManager.db.prepare(query).all(status === 'all' ? [] : status);
+      const instance = await this._ensureDb();
+      const query = status === 'all'
+        ? 'SELECT * FROM draft_eln'
+        : `SELECT * FROM draft_eln WHERE status = '${status}'`;
+      const result = instance.db.exec(query);
+      const drafts = result[0] ? result[0].values.map(row => {
+        const columns = result[0].columns;
+        const record = {};
+        for (let i = 0; i < columns.length; i++) {
+          record[columns[i]] = row[i];
+        }
+        return record;
+      }) : [];
       return drafts.map(draft => {
         return {
           ...draft,
-          materials_json: JSON.parse(draft.materials_json)
+          materials_json: typeof draft.materials_json === 'string'
+            ? JSON.parse(draft.materials_json)
+            : draft.materials_json
         };
       });
     } catch (error) {
@@ -77,8 +97,8 @@ class DraftELNService {
    * @param {number} draftId - 草稿ID
    * @returns {object} - 草稿数据
    */
-  getDraftById(draftId) {
-    return this.dbManager.getDraftTransaction(draftId);
+  async getDraftById(draftId) {
+    return db.getDraftTransaction(draftId);
   }
 
   /**
@@ -86,8 +106,8 @@ class DraftELNService {
    * @param {number} draftId - 草稿ID
    * @returns {object} - 删除结果
    */
-  deleteDraft(draftId) {
-    return this.dbManager.deleteDraftTransaction(draftId);
+  async deleteDraft(draftId) {
+    return db.deleteDraftTransaction(draftId);
   }
 
   /**
@@ -95,13 +115,15 @@ class DraftELNService {
    * @param {number} draftId - 草稿ID
    * @returns {object} - 完成结果
    */
-  completeDraft(draftId) {
+  async completeDraft(draftId) {
     try {
-      this.dbManager.db.prepare(
-        `UPDATE draft_eln SET status = 'completed', updated_at = CURRENT_TIMESTAMP WHERE id = ?`
-      ).run(draftId);
+      const instance = await this._ensureDb();
+      instance.db.run(
+        `UPDATE draft_eln SET status = 'completed', updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+        [draftId]
+      );
 
-      const draft = this.getDraftById(draftId);
+      const draft = await this.getDraftById(draftId);
       return {
         success: true,
         draft

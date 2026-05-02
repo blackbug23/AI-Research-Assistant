@@ -1,7 +1,7 @@
 // 数据库操作统一函数
 // 所有入库方式共享同一个入库函数
 
-const db = require('./database.js');
+const db = require('../database.js');
 
 /**
  * 添加商品到数据库（统一入库函数）

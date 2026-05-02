@@ -1,5 +1,5 @@
 // 增强版实验记录生成
-const database = require('./database.js');
+const database = require('../database.js');
 const templateEngine = require('./template_engine.js');
 const stockDeduction = require('./stock_deduction.js');
 

@@ -1,6 +1,6 @@
-// 真实数据库模块 - SQLite实现
+// 真实数据库模块 - SQL.js实现
 
-const sqlite3 = require('better-sqlite3');
+const initSqlJs = require('sql.js');
 const path = require('path');
 const fs = require('fs');
 
@@ -8,22 +8,32 @@ class DatabaseManager {
   constructor() {
     this.dbPath = process.env.DATABASE_PATH || './desktop-pet.db';
     this.db = null;
-    this.initDatabase();
+    this.init().then(() => {
+      this.createTables();
+    });
   }
 
   /**
    * 初始化数据库
    */
-  initDatabase() {
+  async init() {
     try {
+      const SQL = await initSqlJs();
+      
       // 确保数据库目录存在
       const dbDir = path.dirname(this.dbPath);
       if (!fs.existsSync(dbDir)) {
         fs.mkdirSync(dbDir, { recursive: true });
       }
 
-      this.db = sqlite3(this.dbPath);
-      this.createTables();
+      // 如果数据库文件存在，读取它
+      if (fs.existsSync(this.dbPath)) {
+        const buffer = fs.readFileSync(this.dbPath);
+        this.db = new SQL.Database(buffer);
+      } else {
+        // 创建新数据库
+        this.db = new SQL.Database();
+      }
       
       console.log(`数据库初始化完成: ${this.dbPath}`);
       return { success: true };
@@ -38,7 +48,7 @@ class DatabaseManager {
    */
   createTables() {
     // goods_in 表（第二步已有）
-    this.db.exec(`
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS goods_in (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         goods_name TEXT NOT NULL,
@@ -52,7 +62,7 @@ class DatabaseManager {
     `);
 
     // inventory 表（第二步已有）
-    this.db.exec(`
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS inventory (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         reagent_master_id INTEGER NOT NULL,
@@ -69,7 +79,7 @@ class DatabaseManager {
     `);
 
     // draft_eln 表（第三步新增）
-    this.db.exec(`
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS draft_eln (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT NOT NULL,
@@ -85,7 +95,7 @@ class DatabaseManager {
     `);
 
     // stock_log 表（第三步新增）
-    this.db.exec(`
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS stock_log (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         inventory_id INTEGER NOT NULL,
@@ -101,7 +111,7 @@ class DatabaseManager {
     `);
 
     // eln_records 表（第三步新增）
-    this.db.exec(`
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS eln_records (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         experiment_code TEXT NOT NULL,
@@ -126,7 +136,7 @@ class DatabaseManager {
    * 执行迁移脚本
    * @param {string} migrationFile - 迁移文件路径
    */
-  runMigration(migrationFile) {
+  async runMigration(migrationFile) {
     try {
       const migration = require(migrationFile);
       const result = migration.up(this.db);
@@ -143,7 +153,7 @@ class DatabaseManager {
    * 执行回滚脚本
    * @param {string} migrationFile - 迁移文件路径
    */
-  rollbackMigration(migrationFile) {
+  async rollbackMigration(migrationFile) {
     try {
       const migration = require(migrationFile);
       const result = migration.down(this.db);
@@ -157,40 +167,48 @@ class DatabaseManager {
   }
 
   /**
-   * 事务执行库存扣减
+   * 事务执行库存扣减（sql.js不支持事务，需要手动实现）
    * @param {array} deductionItems - 扣减项 [{reagent_master_id, quantity, unit}]
    * @param {number} elnId - 实验记录ID
    */
-  deductStockTransaction(deductionItems, elnId) {
-    return this.db.transaction(() => {
-      const deductionResult = [];
-      
-      for (const item of deductionItems) {
-        // 查找库存项（FEFO原则）
-        const stockItem = this.db.prepare(
-          `SELECT * FROM inventory 
-           WHERE reagent_master_id = ? AND current_quantity >= ? 
-           ORDER BY expiration_date ASC LIMIT 1`
-        ).get(item.reagent_master_id, item.quantity);
+  async deductStockTransaction(deductionItems, elnId) {
+    const deductionResult = [];
+    
+    for (const item of deductionItems) {
+      // 查找库存项（FEFO原则）
+      const stockResult = this.db.exec(
+        `SELECT * FROM inventory 
+         WHERE reagent_master_id = ? AND current_quantity >= ? 
+         ORDER BY expiration_date ASC LIMIT 1`,
+        [item.reagent_master_id, item.quantity]
+      );
 
-        if (!stockItem) {
-          throw new Error(`库存不足: ${item.reagent_name || '未知试剂'}`);
-        }
+      if (!stockResult[0] || stockResult[0].values.length === 0) {
+        throw new Error(`库存不足: ${item.reagent_name || '未知试剂'}`);
+      }
 
-        // 扣减库存
-        const updatedQuantity = stockItem.current_quantity - item.quantity;
-        this.db.prepare(
-          `UPDATE inventory 
-           SET current_quantity = ?, updated_at = CURRENT_TIMESTAMP 
-           WHERE id = ?`
-        ).run(updatedQuantity, stockItem.id);
+      const stockRow = stockResult[0].values[0];
+      const stockColumns = stockResult[0].columns;
+      const stockItem = {};
+      for (let i = 0; i < stockColumns.length; i++) {
+        stockItem[stockColumns[i]] = stockRow[i];
+      }
 
-        // 记录扣减日志
-        this.db.prepare(
-          `INSERT INTO stock_log 
-           (inventory_id, reagent_master_id, reagent_name, quantity, unit, change_type, remaining, eln_id) 
-           VALUES (?, ?, ?, ?, ?, 'deduction', ?, ?)`
-        ).run(
+      // 扣减库存
+      const updatedQuantity = stockItem.current_quantity - item.quantity;
+      this.db.run(
+        `UPDATE inventory 
+         SET current_quantity = ?, updated_at = CURRENT_TIMESTAMP 
+         WHERE id = ?`,
+        [updatedQuantity, stockItem.id]
+      );
+
+      // 记录扣减日志
+      this.db.run(
+        `INSERT INTO stock_log 
+         (inventory_id, reagent_master_id, reagent_name, quantity, unit, change_type, remaining, eln_id) 
+         VALUES (?, ?, ?, ?, ?, 'deduction', ?, ?)`,
+        [
           stockItem.id,
           item.reagent_master_id,
           stockItem.reagent_name,
@@ -198,49 +216,53 @@ class DatabaseManager {
           item.unit,
           updatedQuantity,
           elnId
-        );
+        ]
+      );
 
-        deductionResult.push({
-          inventory_id: stockItem.id,
-          reagent_master_id: item.reagent_master_id,
-          reagent_name: stockItem.reagent_name,
-          quantity: item.quantity,
-          unit: item.unit,
-          remaining: updatedQuantity
-        });
+      deductionResult.push({
+        inventory_id: stockItem.id,
+        reagent_master_id: item.reagent_master_id,
+        reagent_name: stockItem.reagent_name,
+        quantity: item.quantity,
+        unit: item.unit,
+        remaining: updatedQuantity
+      });
 
-        // 检查库存警戒线
-        if (updatedQuantity < stockItem.min_quantity) {
-          console.warn(`库存警戒: ${stockItem.reagent_name} 剩余 ${updatedQuantity}${stockItem.unit} 低于最小库存 ${stockItem.min_quantity}`);
-        }
+      // 检查库存警戒线
+      if (updatedQuantity < stockItem.min_quantity) {
+        console.warn(`库存警戒: ${stockItem.reagent_name} 剩余 ${updatedQuantity}${stockItem.unit} 低于最小库存 ${stockItem.min_quantity}`);
       }
+    }
 
-      return deductionResult;
-    });
+    return deductionResult;
   }
 
   /**
    * 创建实验记录草稿
    * @param {object} draftData - 草稿数据
    */
-  createDraftTransaction(draftData) {
-    const result = this.db.prepare(
+  async createDraftTransaction(draftData) {
+    const result = this.db.run(
       `INSERT INTO draft_eln 
        (title, objective, principle, materials_json, raw_procedures, raw_results, status) 
-       VALUES (?, ?, ?, ?, ?, ?, 'draft')`
-    ).run(
-      draftData.title,
-      draftData.objective,
-      draftData.principle || '',
-      JSON.stringify(draftData.materials_json),
-      draftData.raw_procedures,
-      draftData.raw_results
+       VALUES (?, ?, ?, ?, ?, ?, 'draft')`,
+      [
+        draftData.title,
+        draftData.objective,
+        draftData.principle || '',
+        JSON.stringify(draftData.materials_json),
+        draftData.raw_procedures,
+        draftData.raw_results
+      ]
     );
+
+    const selectResult = this.db.exec(`SELECT last_insert_rowid()`);
+    const lastInsertRowid = selectResult[0].values[0][0];
 
     return {
       success: true,
       draft: {
-        id: result.lastInsertRowid,
+        id: lastInsertRowid,
         ...draftData,
         status: 'draft'
       }
@@ -252,19 +274,20 @@ class DatabaseManager {
    * @param {number} draftId - 草稿ID
    * @param {object} updateData - 更新数据
    */
-  updateDraftTransaction(draftId, updateData) {
-    this.db.prepare(
+  async updateDraftTransaction(draftId, updateData) {
+    this.db.run(
       `UPDATE draft_eln 
        SET title = ?, objective = ?, principle = ?, materials_json = ?, raw_procedures = ?, raw_results = ?, updated_at = CURRENT_TIMESTAMP 
-       WHERE id = ?`
-    ).run(
-      updateData.title,
-      updateData.objective,
-      updateData.principle || '',
-      JSON.stringify(updateData.materials_json),
-      updateData.raw_procedures,
-      updateData.raw_results,
-      draftId
+       WHERE id = ?`,
+      [
+        updateData.title,
+        updateData.objective,
+        updateData.principle || '',
+        JSON.stringify(updateData.materials_json),
+        updateData.raw_procedures,
+        updateData.raw_results,
+        draftId
+      ]
     );
 
     return { success: true };
@@ -274,13 +297,18 @@ class DatabaseManager {
    * 获取草稿
    * @param {number} draftId - 草稿ID
    */
-  getDraftTransaction(draftId) {
-    const draft = this.db.prepare(
-      `SELECT * FROM draft_eln WHERE id = ?`
-    ).get(draftId);
+  async getDraftTransaction(draftId) {
+    const result = this.db.exec(`SELECT * FROM draft_eln WHERE id = ?`, [draftId]);
 
-    if (!draft) {
+    if (!result[0] || result[0].values.length === 0) {
       return null;
+    }
+
+    const row = result[0].values[0];
+    const columns = result[0].columns;
+    const draft = {};
+    for (let i = 0; i < columns.length; i++) {
+      draft[columns[i]] = row[i];
     }
 
     return {
@@ -293,31 +321,35 @@ class DatabaseManager {
    * 完成ELN记录
    * @param {object} elnData - ELN数据
    */
-  completeELNTransaction(elnData) {
-    const result = this.db.prepare(
+  async completeELNTransaction(elnData) {
+    const result = this.db.run(
       `INSERT INTO eln_records 
        (experiment_code, experiment_title, objective, principle, procedures, results, conclusion, 
         materials_json, materials_snapshot, json_content, pdf_path, stock_deductions, status) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed')`
-    ).run(
-      elnData.experiment_code,
-      elnData.experiment_title,
-      elnData.objective,
-      elnData.principle || '',
-      elnData.procedures,
-      elnData.results,
-      elnData.conclusion || '',
-      elnData.materials_json,
-      elnData.materials_snapshot,
-      elnData.json_content,
-      elnData.pdf_path || '',
-      elnData.stock_deductions || '',
-      'completed'
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed')`,
+      [
+        elnData.experiment_code,
+        elnData.experiment_title,
+        elnData.objective,
+        elnData.principle || '',
+        elnData.procedures,
+        elnData.results,
+        elnData.conclusion || '',
+        elnData.materials_json,
+        elnData.materials_snapshot,
+        elnData.json_content,
+        elnData.pdf_path || '',
+        elnData.stock_deductions || '',
+        'completed'
+      ]
     );
+
+    const selectResult = this.db.exec(`SELECT last_insert_rowid()`);
+    const lastInsertRowid = selectResult[0].values[0][0];
 
     return {
       success: true,
-      eln_id: result.lastInsertRowid
+      eln_id: lastInsertRowid
     };
   }
 
@@ -325,12 +357,23 @@ class DatabaseManager {
    * 删除草稿
    * @param {number} draftId - 草稿ID
    */
-  deleteDraftTransaction(draftId) {
-    this.db.prepare(
-      `DELETE FROM draft_eln WHERE id = ?`
-    ).run(draftId);
-
+  async deleteDraftTransaction(draftId) {
+    this.db.run(`DELETE FROM draft_eln WHERE id = ?`, [draftId]);
     return { success: true };
+  }
+
+  /**
+   * 保存数据库到文件
+   */
+  saveDatabase() {
+    try {
+      const data = this.db.export();
+      const buffer = Buffer.from(data);
+      fs.writeFileSync(this.dbPath, buffer);
+      console.log('数据库已保存到文件');
+    } catch (error) {
+      console.error('保存数据库失败:', error);
+    }
   }
 
   /**
@@ -344,4 +387,61 @@ class DatabaseManager {
   }
 }
 
-module.exports = DatabaseManager;
+// 导出数据库实例（异步初始化）
+async function initDatabaseInstance() {
+  const db = new DatabaseManager();
+  // 等待初始化完成
+  while (!db.db) {
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  return db;
+}
+
+const dbInstancePromise = initDatabaseInstance();
+
+module.exports = {
+  initDatabase: async () => {
+    const db = await dbInstancePromise;
+    return db.init();
+  },
+  runMigration: async (migrationFile) => {
+    const db = await dbInstancePromise;
+    return db.runMigration(migrationFile);
+  },
+  rollbackMigration: async (migrationFile) => {
+    const db = await dbInstancePromise;
+    return db.rollbackMigration(migrationFile);
+  },
+  deductStockTransaction: async (deductionItems, elnId) => {
+    const db = await dbInstancePromise;
+    return db.deductStockTransaction(deductionItems, elnId);
+  },
+  createDraftTransaction: async (draftData) => {
+    const db = await dbInstancePromise;
+    return db.createDraftTransaction(draftData);
+  },
+  updateDraftTransaction: async (draftId, updateData) => {
+    const db = await dbInstancePromise;
+    return db.updateDraftTransaction(draftId, updateData);
+  },
+  getDraftTransaction: async (draftId) => {
+    const db = await dbInstancePromise;
+    return db.getDraftTransaction(draftId);
+  },
+  completeELNTransaction: async (elnData) => {
+    const db = await dbInstancePromise;
+    return db.completeELNTransaction(elnData);
+  },
+  deleteDraftTransaction: async (draftId) => {
+    const db = await dbInstancePromise;
+    return db.deleteDraftTransaction(draftId);
+  },
+  saveDatabase: async () => {
+    const db = await dbInstancePromise;
+    return db.saveDatabase();
+  },
+  close: async () => {
+    const db = await dbInstancePromise;
+    return db.close();
+  }
+};

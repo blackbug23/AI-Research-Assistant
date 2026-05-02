@@ -8,7 +8,7 @@
 - Electron + React/Vue（桌面端）
 - Flutter（移动端）
 - SQLite（统一数据层）
-- better-sqlite3/sqflite（数据库接口）
+- sql.js/sqflite（数据库接口）
 
 ## 👥 **团队角色分工**
 
@@ -108,14 +108,14 @@ desktop-pet/
 ### **技术架构** ✅
 - **前端**：HTML/CSS/JavaScript动画
 - **后端**：Electron + Node.js
-- **数据库**：SQLite（better-sqlite3）
+- **数据库**：SQLite（sql.js）
 - **通信**：IPC双向通信
 - **UI组件**：拖拽、动画、气泡、托盘图标
 
 ## 📈 **待完善工作**
 
 ### **技术优化**
-1. **数据库实现**：better-sqlite3编译问题 → 改用sqlite3
+1. **数据库实现**：better-sqlite3编译问题 → 改用sql.js（纯JavaScript SQLite）
 2. **UI动画**：用Lottie或精灵图优化动画效果
 3. **数据同步**：实现WebSocket + CRDT同步
 4. **Flutter移动端**：完成移动端实现

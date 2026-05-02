@@ -404,6 +404,44 @@ module.exports = {
     const db = await dbInstancePromise;
     return db.init();
   },
+  // Main.js 需要的API
+  insertFromQRCode: async (qrcodeData) => {
+    const db = await dbInstancePromise;
+    return db.insertFromQRCode(qrcodeData);
+  },
+  getEmptyLocationRecords: async () => {
+    const db = await dbInstancePromise;
+    return db.getEmptyLocationRecords();
+  },
+  updateStorageLocation: async (goodsId, location) => {
+    const db = await dbInstancePromise;
+    return db.updateStorageLocation(goodsId, location);
+  },
+  insertTestData: async () => {
+    const db = await dbInstancePromise;
+    return db.insertTestData();
+  },
+  queryInventoryData: async () => {
+    const db = await dbInstancePromise;
+    return db.queryInventoryData();
+  },
+  queryGoodsInData: async () => {
+    const db = await dbInstancePromise;
+    return db.queryGoodsInData();
+  },
+  clearDatabase: async () => {
+    const db = await dbInstancePromise;
+    return db.clearDatabase();
+  },
+  triggerPetReminder: async (records) => {
+    const db = await dbInstancePromise;
+    return db.triggerPetReminder(records);
+  },
+  startReminderTimer: async () => {
+    const db = await dbInstancePromise;
+    return db.startTimer();
+  },
+  // ELN相关的API（用于实验记录生成）
   runMigration: async (migrationFile) => {
     const db = await dbInstancePromise;
     return db.runMigration(migrationFile);

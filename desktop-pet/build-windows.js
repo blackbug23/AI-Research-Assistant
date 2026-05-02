@@ -30,6 +30,12 @@ function createPackageConfig() {
     },
     "files": [
       "main.js",
+      "database.js",
+      "simple_db.js",
+      "simple_db_async.js",
+      "app.js",
+      "simple_main.js",
+      "preload.js",
       "index.html",
       "guide.html",
       "scanner.html",

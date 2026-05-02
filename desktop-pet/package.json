@@ -39,7 +39,9 @@
     "files": [
       "app.js",
       "main.js",
+      "database.js",
       "simple_main.js",
+      "simple_db.js",
       "preload.js",
       "index.html",
       "package.json",

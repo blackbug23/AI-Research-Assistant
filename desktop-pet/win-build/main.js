@@ -1,7 +1,7 @@
 const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, dialog } = require('electron');
 const fs = require('fs');
 const path = require('path');
-const dbModule = require('./database_sqljs.js');
+const dbModule = require('./src/database.js');
 
 let mainWindow;
 let tray;

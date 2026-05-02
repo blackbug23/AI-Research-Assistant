@@ -39,6 +39,7 @@
     "files": [
       "app.js",
       "main.js",
+      "src/**/*",
       "simple_main.js",
       "preload.js",
       "index.html",

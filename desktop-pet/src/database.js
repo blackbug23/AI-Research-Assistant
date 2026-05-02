@@ -1,31 +1,21 @@
-// 真实数据库模块 - SQL.js实现
-
 const initSqlJs = require('sql.js');
 const path = require('path');
 const fs = require('fs');
 
-class DatabaseManager {
+class DesktopPetDatabase {
   constructor() {
-    this.dbPath = process.env.DATABASE_PATH || './desktop-pet.db';
+    this.dbPath = path.join(__dirname, 'database.db');
     this.db = null;
     this.init().then(() => {
-      this.createTables();
+      this.setupTables();
+      this.startTimer();
     });
   }
 
-  /**
-   * 初始化数据库
-   */
   async init() {
     try {
       const SQL = await initSqlJs();
       
-      // 确保数据库目录存在
-      const dbDir = path.dirname(this.dbPath);
-      if (!fs.existsSync(dbDir)) {
-        fs.mkdirSync(dbDir, { recursive: true });
-      }
-
       // 如果数据库文件存在，读取它
       if (fs.existsSync(this.dbPath)) {
         const buffer = fs.readFileSync(this.dbPath);
@@ -35,336 +25,258 @@ class DatabaseManager {
         this.db = new SQL.Database();
       }
       
-      console.log(`数据库初始化完成: ${this.dbPath}`);
-      return { success: true };
+      console.log('数据库连接成功');
     } catch (error) {
-      console.error('数据库初始化失败:', error);
-      return { success: false, error: error.message };
+      console.error('数据库连接失败:', error);
+      // 创建内存数据库
+      const SQL = await initSqlJs();
+      this.db = new SQL.Database();
+      console.log('使用内存数据库');
     }
   }
 
-  /**
-   * 创建所有表
-   */
-  createTables() {
-    // goods_in 表（第二步已有）
-    this.db.run(`
-      CREATE TABLE IF NOT EXISTS goods_in (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        goods_name TEXT NOT NULL,
-        quantity INTEGER NOT NULL,
-        price DECIMAL(10,2),
-        supplier TEXT,
-        notes TEXT,
-        arrival_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        storage_location TEXT
-      )
-    `);
+  setupTables() {
+    // goods_in表 - 入库记录
+    this.db.run(`CREATE TABLE IF NOT EXISTS goods_in (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      goods_name TEXT NOT NULL,
+      quantity INTEGER NOT NULL,
+      price DECIMAL(10,2),
+      arrival_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      supplier TEXT,
+      notes TEXT,
+      qrcode_data TEXT,
+      storage_location TEXT DEFAULT NULL,
+      last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
 
-    // inventory 表（第二步已有）
-    this.db.run(`
-      CREATE TABLE IF NOT EXISTS inventory (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        reagent_master_id INTEGER NOT NULL,
-        reagent_name TEXT NOT NULL,
-        current_quantity DECIMAL(10,2) NOT NULL,
-        unit TEXT NOT NULL,
-        min_quantity DECIMAL(10,2) DEFAULT 0,
-        max_quantity DECIMAL(10,2),
-        expiration_date DATE,
-        location TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+    // inventory表 - 库存
+    this.db.run(`CREATE TABLE IF NOT EXISTS inventory (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      goods_id INTEGER NOT NULL,
+      goods_name TEXT NOT NULL,
+      current_quantity INTEGER NOT NULL DEFAULT 0,
+      min_quantity INTEGER NOT NULL DEFAULT 0,
+      max_quantity INTEGER NOT NULL DEFAULT 1000,
+      location TEXT,
+      last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
 
-    // draft_eln 表（第三步新增）
-    this.db.run(`
-      CREATE TABLE IF NOT EXISTS draft_eln (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        objective TEXT NOT NULL,
-        principle TEXT,
-        materials_json TEXT NOT NULL,
-        raw_procedures TEXT NOT NULL,
-        raw_results TEXT NOT NULL,
-        status TEXT DEFAULT 'draft',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // stock_log 表（第三步新增）
-    this.db.run(`
-      CREATE TABLE IF NOT EXISTS stock_log (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        inventory_id INTEGER NOT NULL,
-        reagent_master_id INTEGER NOT NULL,
-        reagent_name TEXT NOT NULL,
-        quantity DECIMAL(10,2) NOT NULL,
-        unit TEXT NOT NULL,
-        change_type TEXT NOT NULL,
-        remaining DECIMAL(10,2) NOT NULL,
-        eln_id INTEGER,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // eln_records 表（第三步新增）
-    this.db.run(`
-      CREATE TABLE IF NOT EXISTS eln_records (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        experiment_code TEXT NOT NULL,
-        experiment_title TEXT NOT NULL,
-        objective TEXT NOT NULL,
-        principle TEXT,
-        procedures TEXT NOT NULL,
-        results TEXT NOT NULL,
-        conclusion TEXT,
-        materials_json TEXT NOT NULL,
-        materials_snapshot TEXT NOT NULL,
-        json_content TEXT NOT NULL,
-        pdf_path TEXT,
-        stock_deductions TEXT,
-        status TEXT DEFAULT 'completed',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+    console.log('数据库表创建完成');
   }
 
-  /**
-   * 执行迁移脚本
-   * @param {string} migrationFile - 迁移文件路径
-   */
-  async runMigration(migrationFile) {
+  // QR码解析和数据入库
+  async insertFromQRCode(qrcodeData) {
     try {
-      const migration = require(migrationFile);
-      const result = migration.up(this.db);
+      // QR码解析 - 正则表达式提取信息
+      const regex = /(商品|名称|品名):(.+)|数量:(.+)|价格:(.+)|供应商:(.+)|备注:(.+)/i;
+      const matches = qrcodeData.match(regex);
       
-      console.log(`迁移完成: ${migrationFile}`);
-      return result;
-    } catch (error) {
-      console.error(`迁移失败: ${migrationFile}`, error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  /**
-   * 执行回滚脚本
-   * @param {string} migrationFile - 迁移文件路径
-   */
-  async rollbackMigration(migrationFile) {
-    try {
-      const migration = require(migrationFile);
-      const result = migration.down(this.db);
+      let goods_name = '';
+      let quantity = 1;
+      let price = 0;
+      let supplier = '';
+      let notes = '';
       
-      console.log(`回滚完成: ${migrationFile}`);
-      return result;
-    } catch (error) {
-      console.error(`回滚失败: ${migrationFile}`, error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  /**
-   * 事务执行库存扣减（sql.js不支持事务，需要手动实现）
-   * @param {array} deductionItems - 扣减项 [{reagent_master_id, quantity, unit}]
-   * @param {number} elnId - 实验记录ID
-   */
-  async deductStockTransaction(deductionItems, elnId) {
-    const deductionResult = [];
-    
-    for (const item of deductionItems) {
-      // 查找库存项（FEFO原则）
-      const stockResult = this.db.exec(
-        `SELECT * FROM inventory 
-         WHERE reagent_master_id = ? AND current_quantity >= ? 
-         ORDER BY expiration_date ASC LIMIT 1`,
-        [item.reagent_master_id, item.quantity]
-      );
-
-      if (!stockResult[0] || stockResult[0].values.length === 0) {
-        throw new Error(`库存不足: ${item.reagent_name || '未知试剂'}`);
+      if (matches) {
+        // 提取商品名称
+        if (matches[2]) goods_name = matches[2].trim();
+        
+        // 提取数量
+        if (matches[3]) quantity = parseInt(matches[3]) || 1;
+        
+        // 提取价格
+        if (matches[4]) price = parseFloat(matches[4]) || 0;
+        
+        // 提取供应商
+        if (matches[5]) supplier = matches[5].trim();
+        
+        // 提取备注
+        if (matches[6]) notes = matches[6].trim();
+      } else {
+        // 如果没有匹配，使用原始文本作为商品名称
+        goods_name = qrcodeData;
       }
 
-      const stockRow = stockResult[0].values[0];
-      const stockColumns = stockResult[0].columns;
-      const stockItem = {};
-      for (let i = 0; i < stockColumns.length; i++) {
-        stockItem[stockColumns[i]] = stockRow[i];
-      }
-
-      // 扣减库存
-      const updatedQuantity = stockItem.current_quantity - item.quantity;
-      this.db.run(
-        `UPDATE inventory 
-         SET current_quantity = ?, updated_at = CURRENT_TIMESTAMP 
-         WHERE id = ?`,
-        [updatedQuantity, stockItem.id]
-      );
-
-      // 记录扣减日志
-      this.db.run(
-        `INSERT INTO stock_log 
-         (inventory_id, reagent_master_id, reagent_name, quantity, unit, change_type, remaining, eln_id) 
-         VALUES (?, ?, ?, ?, ?, 'deduction', ?, ?)`,
-        [
-          stockItem.id,
-          item.reagent_master_id,
-          stockItem.reagent_name,
-          item.quantity,
-          item.unit,
-          updatedQuantity,
-          elnId
-        ]
-      );
-
-      deductionResult.push({
-        inventory_id: stockItem.id,
-        reagent_master_id: item.reagent_master_id,
-        reagent_name: stockItem.reagent_name,
-        quantity: item.quantity,
-        unit: item.unit,
-        remaining: updatedQuantity
-      });
-
-      // 检查库存警戒线
-      if (updatedQuantity < stockItem.min_quantity) {
-        console.warn(`库存警戒: ${stockItem.reagent_name} 剩余 ${updatedQuantity}${stockItem.unit} 低于最小库存 ${stockItem.min_quantity}`);
-      }
-    }
-
-    return deductionResult;
-  }
-
-  /**
-   * 创建实验记录草稿
-   * @param {object} draftData - 草稿数据
-   */
-  async createDraftTransaction(draftData) {
-    const result = this.db.run(
-      `INSERT INTO draft_eln 
-       (title, objective, principle, materials_json, raw_procedures, raw_results, status) 
-       VALUES (?, ?, ?, ?, ?, ?, 'draft')`,
-      [
-        draftData.title,
-        draftData.objective,
-        draftData.principle || '',
-        JSON.stringify(draftData.materials_json),
-        draftData.raw_procedures,
-        draftData.raw_results
-      ]
-    );
-
-    const selectResult = this.db.exec(`SELECT last_insert_rowid()`);
-    const lastInsertRowid = selectResult[0].values[0][0];
-
-    return {
-      success: true,
-      draft: {
+      // 插入goods_in表（storage_location置空）
+      const result = this.db.run(`INSERT INTO goods_in (
+        goods_name, quantity, price, supplier, notes, qrcode_data, storage_location
+      ) VALUES (?, ?, ?, ?, ?, ?, NULL)`, 
+      [goods_name, quantity, price, supplier, notes, qrcodeData]);
+      
+      // 获取lastInsertRowid
+      const selectResult = this.db.exec(`SELECT last_insert_rowid()`);
+      const lastInsertRowid = selectResult[0].values[0][0];
+      
+      // 更新inventory表
+      this.db.run(`INSERT OR REPLACE INTO inventory (
+        goods_id, goods_name, current_quantity, min_quantity, max_quantity, location, last_update
+      ) VALUES (
+        ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP
+      )`, [lastInsertRowid, goods_name, quantity, 10, 100, null]);
+      
+      console.log(`入库成功：${goods_name}, 数量：${quantity}, storage_location: NULL`);
+      
+      return {
+        success: true,
         id: lastInsertRowid,
-        ...draftData,
-        status: 'draft'
+        goods_name,
+        quantity,
+        price,
+        supplier,
+        notes,
+        qrcode_data: qrcodeData,
+        storage_location: null
+      };
+    } catch (error) {
+      console.error('QR码入库失败:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // 获取空位置的入库记录
+  getEmptyLocationRecords() {
+    try {
+      const result = this.db.exec(`SELECT * FROM goods_in WHERE storage_location IS NULL ORDER BY arrival_date DESC`);
+      
+      const records = result[0] ? result[0].values.map(row => {
+        const columns = result[0].columns;
+        const record = {};
+        for (let i = 0; i < columns.length; i++) {
+          record[columns[i]] = row[i];
+        }
+        return record;
+      }) : [];
+      
+      return {
+        success: true,
+        count: records.length,
+        data: records
+      };
+    } catch (error) {
+      console.error('查询空位置记录失败:', error);
+      return { success: false, error: error.message, count: 0, data: [] };
+    }
+  }
+
+  // 更新存储位置
+  updateStorageLocation(goodsId, location) {
+    try {
+      const result = this.db.run(`UPDATE goods_in SET storage_location = ?, last_update = CURRENT_TIMESTAMP WHERE id = ?`, [location, goodsId]);
+      
+      if (result.changes > 0) {
+        // 同时更新库存表的location
+        const goodsResult = this.db.exec(`SELECT goods_name FROM goods_in WHERE id = ?`, [goodsId]);
+        if (goodsResult[0] && goodsResult[0].values.length > 0) {
+          const goods_name = goodsResult[0].values[0][0];
+          this.db.run(`UPDATE inventory SET location = ?, last_update = CURRENT_TIMESTAMP WHERE goods_name = ?`, [location, goods_name]);
+        }
+        
+        return {
+          success: true,
+          message: `位置更新成功：${goodsId} -> ${location}`,
+          changes: result.changes
+        };
+      } else {
+        return {
+          success: false,
+          message: '未找到对应商品',
+          changes: 0
+        };
       }
-    };
-  }
-
-  /**
-   * 更新实验记录草稿
-   * @param {number} draftId - 草稿ID
-   * @param {object} updateData - 更新数据
-   */
-  async updateDraftTransaction(draftId, updateData) {
-    this.db.run(
-      `UPDATE draft_eln 
-       SET title = ?, objective = ?, principle = ?, materials_json = ?, raw_procedures = ?, raw_results = ?, updated_at = CURRENT_TIMESTAMP 
-       WHERE id = ?`,
-      [
-        updateData.title,
-        updateData.objective,
-        updateData.principle || '',
-        JSON.stringify(updateData.materials_json),
-        updateData.raw_procedures,
-        updateData.raw_results,
-        draftId
-      ]
-    );
-
-    return { success: true };
-  }
-
-  /**
-   * 获取草稿
-   * @param {number} draftId - 草稿ID
-   */
-  async getDraftTransaction(draftId) {
-    const result = this.db.exec(`SELECT * FROM draft_eln WHERE id = ?`, [draftId]);
-
-    if (!result[0] || result[0].values.length === 0) {
-      return null;
+    } catch (error) {
+      console.error('更新存储位置失败:', error);
+      return { success: false, error: error.message };
     }
-
-    const row = result[0].values[0];
-    const columns = result[0].columns;
-    const draft = {};
-    for (let i = 0; i < columns.length; i++) {
-      draft[columns[i]] = row[i];
-    }
-
-    return {
-      ...draft,
-      materials_json: JSON.parse(draft.materials_json)
-    };
   }
 
-  /**
-   * 完成ELN记录
-   * @param {object} elnData - ELN数据
-   */
-  async completeELNTransaction(elnData) {
-    const result = this.db.run(
-      `INSERT INTO eln_records 
-       (experiment_code, experiment_title, objective, principle, procedures, results, conclusion, 
-        materials_json, materials_snapshot, json_content, pdf_path, stock_deductions, status) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed')`,
-      [
-        elnData.experiment_code,
-        elnData.experiment_title,
-        elnData.objective,
-        elnData.principle || '',
-        elnData.procedures,
-        elnData.results,
-        elnData.conclusion || '',
-        elnData.materials_json,
-        elnData.materials_snapshot,
-        elnData.json_content,
-        elnData.pdf_path || '',
-        elnData.stock_deductions || '',
-        'completed'
-      ]
-    );
+  // 定时器检查空位置
+  startTimer() {
+    // 每5分钟检查一次
+    setInterval(() => {
+      const emptyRecords = this.getEmptyLocationRecords();
+      
+      if (emptyRecords.success && emptyRecords.count > 0) {
+        console.log('发现空位置记录:', emptyRecords.count);
+        // 触发桌宠提醒
+        this.triggerPetReminder(emptyRecords.data);
+      }
+    }, 5 * 60 * 1000); // 5分钟
+  }
 
-    const selectResult = this.db.exec(`SELECT last_insert_rowid()`);
-    const lastInsertRowid = selectResult[0].values[0][0];
+  // 触发桌宠提醒
+  triggerPetReminder(records) {
+    const message = records.map(r => {
+      return `${r.goods_name} (数量：${r.quantity})`;
+    }).join(', ');
+    
+    console.log(`提醒：新到的 ${message} 还没放好~`);
+    
+    // 这里可以触发UI提醒（通过IPC发送到前端）
+    // 例如：event.emit('reminder', records);
+  }
+
+  // 初始化测试数据
+  async insertTestData() {
+    const data = [
+      { goods_name: '笔记本电脑', quantity: 5, price: 2999.99, supplier: '供应商A', notes: '新品入库', qrcode_data: 'QR:笔记本-001' },
+      { goods_name: '鼠标', quantity: 100, price: 49.99, supplier: '供应商B', notes: '常规进货', qrcode_data: 'QR:鼠标-002' },
+      { goods_name: '键盘', quantity: 50, price: 129.99, supplier: '供应商C', notes: '更新库存', qrcode_data: 'QR:键盘-003' },
+      { goods_name: '显示器', quantity: 20, price: 999.99, supplier: '供应商D', notes: '大屏显示器', qrcode_data: 'QR:显示器-004' }
+    ];
+
+    const results = [];
+    for (const item of data) {
+      const result = await this.insertFromQRCode(item.qrcode_data);
+      results.push(result);
+    }
 
     return {
       success: true,
-      eln_id: lastInsertRowid
+      count: results.length,
+      results
     };
   }
 
-  /**
-   * 删除草稿
-   * @param {number} draftId - 草稿ID
-   */
-  async deleteDraftTransaction(draftId) {
-    this.db.run(`DELETE FROM draft_eln WHERE id = ?`, [draftId]);
-    return { success: true };
+  // 查询库存数据
+  queryInventoryData() {
+    const result = this.db.exec(`SELECT * FROM inventory`);
+    const data = result[0] ? result[0].values.map(row => {
+      const columns = result[0].columns;
+      const record = {};
+      for (let i = 0; i < columns.length; i++) {
+        record[columns[i]] = row[i];
+      }
+      return record;
+    }) : [];
+    
+    return { success: true, data };
   }
 
-  /**
-   * 保存数据库到文件
-   */
+  // 查询入库数据
+  queryGoodsInData() {
+    const result = this.db.exec(`SELECT * FROM goods_in`);
+    const data = result[0] ? result[0].values.map(row => {
+      const columns = result[0].columns;
+      const record = {};
+      for (let i = 0; i < columns.length; i++) {
+        record[columns[i]] = row[i];
+      }
+      return record;
+    }) : [];
+    
+    return { success: true, data };
+  }
+
+  // 清空数据库
+  clearDatabase() {
+    this.db.run(`DELETE FROM goods_in`);
+    this.db.run(`DELETE FROM inventory`);
+    
+    return { success: true, message: '数据库已清空' };
+  }
+
+  // 保存数据库到文件
   saveDatabase() {
     try {
       const data = this.db.export();
@@ -375,21 +287,11 @@ class DatabaseManager {
       console.error('保存数据库失败:', error);
     }
   }
-
-  /**
-   * 关闭数据库连接
-   */
-  close() {
-    if (this.db) {
-      this.db.close();
-      console.log('数据库连接已关闭');
-    }
-  }
 }
 
 // 导出数据库实例（异步初始化）
 async function initDatabaseInstance() {
-  const db = new DatabaseManager();
+  const db = new DesktopPetDatabase();
   // 等待初始化完成
   while (!db.db) {
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -399,12 +301,12 @@ async function initDatabaseInstance() {
 
 const dbInstancePromise = initDatabaseInstance();
 
+// 导出方法
 module.exports = {
   initDatabase: async () => {
     const db = await dbInstancePromise;
-    return db.init();
+    return db;
   },
-  // Main.js 需要的API
   insertFromQRCode: async (qrcodeData) => {
     const db = await dbInstancePromise;
     return db.insertFromQRCode(qrcodeData);
@@ -436,6 +338,10 @@ module.exports = {
   triggerPetReminder: async (records) => {
     const db = await dbInstancePromise;
     return db.triggerPetReminder(records);
+  },
+  saveDatabase: async () => {
+    const db = await dbInstancePromise;
+    return db.saveDatabase();
   },
   startReminderTimer: async () => {
     const db = await dbInstancePromise;
@@ -473,10 +379,6 @@ module.exports = {
   deleteDraftTransaction: async (draftId) => {
     const db = await dbInstancePromise;
     return db.deleteDraftTransaction(draftId);
-  },
-  saveDatabase: async () => {
-    const db = await dbInstancePromise;
-    return db.saveDatabase();
   },
   close: async () => {
     const db = await dbInstancePromise;

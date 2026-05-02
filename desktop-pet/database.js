@@ -150,7 +150,7 @@ class DesktopPetDatabase {
       
       return {
         success: true,
-s.count: records.length,
+        count: records.length,
         data: records
       };
     } catch (error) {
